@@ -1,0 +1,7 @@
+{
+    "output": "codemod.phar",
+    "compression": "GZ",
+    "directories": ["src", "vendor"],
+    "stub": "stub.php",
+    "force-autodiscovery": true
+}

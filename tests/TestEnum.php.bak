@@ -1,0 +1,1 @@
+<?php enum TestEnum: string { case CASE_ONE = "one"; case CASE_TWO = "two"; }

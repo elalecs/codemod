@@ -1,0 +1,45 @@
+# Archivos y directorios generados por el sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos y directorios generados por IDEs y editores
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+.phpstorm.meta.php
+_ide_helper.php
+
+# Archivos y directorios generados por Composer
+/vendor/
+composer.phar
+composer.lock
+
+# Archivos y directorios generados por PHPUnit
+.phpunit.result.cache
+/coverage/
+
+# Archivos y directorios generados por PHP
+*.log
+error_log
+php_errors.log
+
+# Archivos y directorios generados por el proyecto
+/build/
+/dist/
+/node_modules/
+.env
+.env.backup
+.env.local
+.env.*.local
+.phpunit.result.cache
+*.phar
+
+# Archivos de caché y temporales
+/cache/
+/tmp/
+*.cache
+*.tmp
