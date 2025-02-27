@@ -244,7 +244,6 @@ METHODS
 - From file: `--methods-file=path/to/methods.php`
 - From directory: `--methods-dir=path/to/methods_directory`
 
-
 ### Dry-Run Mode (Simulation)
 
 The `--dry-run` option is a fundamental feature for safely testing changes:
@@ -282,6 +281,98 @@ This mode is especially useful when working with:
 - Multiple files at once
 - Batch commands that affect many elements
 - Complex modifications that require prior validation
+
+## Advanced Examples for Class Modification
+
+### Working with Array Properties
+
+When you need to add or modify array properties with complex values, you have several options:
+
+#### 1. Using Files for Array Values (Recommended)
+
+```bash
+# Add a casts property using a file
+./codemod.phar class:modify path/to/Class.php \
+  --property="casts:array" --array-value="$(cat path/to/casts.txt)"
+```
+
+Where `casts.txt` file contains the array definition:
+```php
+[
+    'date' => 'datetime',
+    'active' => 'boolean',
+    'settings' => 'array',
+    'type' => \App\Enums\MyType::class
+]
+```
+
+#### 2. Using Separate Commands for Multiple Array Properties
+
+```bash
+# First add casts property
+./codemod.phar class:modify path/to/Class.php --property="casts:array" --array-value="[
+    'type' => \App\Enums\PropertyType::class,
+    'status' => \App\Enums\PropertyStatus::class
+]"
+
+# Then add translatable property
+./codemod.phar class:modify path/to/Class.php --property="translatable:array" --array-value="[
+    'name', 'description', 'policies'
+]"
+```
+
+#### 3. Batch Processing Using JSON
+
+```bash
+./codemod.phar class:modify path/to/Class.php --properties-file=properties.json
+```
+
+With `properties.json` file:
+```json
+[
+  {
+    "name": "casts",
+    "type": "array",
+    "value": {
+      "date": "datetime", 
+      "active": "boolean"
+    },
+    "visibility": "protected"
+  },
+  {
+    "name": "translatable",
+    "type": "array",
+    "value": ["name", "description"],
+    "visibility": "protected"
+  }
+]
+```
+
+### ⚠️ Common Issues and Solutions
+
+1. **"Too many arguments" Error**:
+   ```
+   Too many arguments to "class:modify" command, expected arguments "file".
+   ```
+   **Solution**: Use separate commands for each array property as shown above.
+
+2. **Strings vs. Arrays**:
+   When your array contains numeric keys that should be treated as strings, use the `--string` option:
+   ```bash
+   ./codemod.phar class:modify path/to/Class.php \
+     --add-to-array="codes" --key="404" --array-value="Not Found" --string
+   ```
+
+3. **Escaping Special Characters**:
+   Use single quotes for values containing special characters and escape $ characters when using heredoc:
+   ```bash
+   ./codemod.phar class:modify path/to/Class.php --method=$(cat << 'EOT'
+   public function getUrl(): string {
+       return $this->baseUrl . '/api';
+   }
+   EOT
+   )
+   ```
 
 ## Architecture 🏗️
 ```
