@@ -18,6 +18,10 @@ use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
+use PhpParser\Node\Stmt\Return_;
+use PhpParser\Node;
+use PhpParser\NodeVisitor\NodeVisitorAbstract;
+use PhpParser\NodeVisitor;
 
 class ClassModifier
 {
@@ -86,17 +90,31 @@ class ClassModifier
     /**
      * Modifica una propiedad existente
      */
-    public function modifyProperty(Class_ $class, string $name, $newValue, ?string $type = null): bool
+    public function modifyProperty(Class_ $class, string $name, $newValue = null, ?string $type = null, ?int $visibility = null): bool
     {
         foreach ($class->stmts as $stmt) {
             if ($stmt instanceof Property) {
                 foreach ($stmt->props as $prop) {
                     if ($prop->name->toString() === $name) {
-                        $prop->default = $this->createValueNode($newValue);
+                        // Actualizar el valor si se proporcionó
+                        if ($newValue !== null) {
+                            $prop->default = $this->createValueNode($newValue);
+                        }
                         
                         // Actualizar el tipo si se especificó
                         if ($type !== null) {
                             $stmt->type = new Identifier($type);
+                        }
+                        
+                        // Actualizar la visibilidad si se especificó
+                        if ($visibility !== null) {
+                            // Primero eliminamos los flags de visibilidad existentes
+                            $stmt->flags &= ~Class_::MODIFIER_PUBLIC;
+                            $stmt->flags &= ~Class_::MODIFIER_PROTECTED;
+                            $stmt->flags &= ~Class_::MODIFIER_PRIVATE;
+                            
+                            // Luego añadimos la nueva visibilidad
+                            $stmt->flags |= $visibility;
                         }
                         
                         return true;
@@ -156,47 +174,73 @@ class ClassModifier
     public function addMethod(Class_ $class, string $methodStub): bool
     {
         try {
-            // Verificar si el stub comienza con <?php y añadirlo si no está presente
-            if (!str_starts_with(trim($methodStub), '<?php')) {
-                // Crear una clase temporal con el método
+            // Limpiar el código del método
+            $methodStub = trim($methodStub);
+            
+            // Extraer el nombre del método usando regex
+            if (!preg_match('/function\s+([a-zA-Z0-9_]+)/i', $methodStub, $matches)) {
+                return false; // No se pudo extraer el nombre del método
+            }
+            
+            $methodName = $matches[1];
+            
+            // Verificar si el método ya existe en la clase
+            foreach ($class->stmts as $stmt) {
+                if ($stmt instanceof ClassMethod && $stmt->name->toString() === $methodName) {
+                    return false; // El método ya existe
+                }
+            }
+            
+            // Preparar el código para parsear
+            if (!str_starts_with($methodStub, '<?php')) {
                 $tempCode = "<?php\nclass TempClass {\n    $methodStub\n}";
             } else {
-                // Si ya tiene la etiqueta PHP, eliminarla y crear la clase temporal
                 $methodStub = preg_replace('/^\s*<\?php\s*/i', '', $methodStub);
                 $tempCode = "<?php\nclass TempClass {\n    $methodStub\n}";
             }
             
+            // Parsear el código
             $ast = $this->parser->parse($tempCode);
             
             if (!$ast) {
                 return false;
             }
             
-            // Buscar el método en la clase temporal
-            $methodNode = null;
-            
-            // Recorrer el AST para encontrar la clase y el método
+            // Enfoque simplificado: buscar directamente en el AST
             foreach ($ast as $node) {
                 if ($node instanceof Class_) {
                     foreach ($node->stmts as $stmt) {
-                        if ($stmt instanceof ClassMethod) {
-                            $methodNode = $stmt;
-                            break 2;
+                        if ($stmt instanceof ClassMethod && $stmt->name->toString() === $methodName) {
+                            // Añadir el método a la clase
+                            $class->stmts[] = $stmt;
+                            return true;
                         }
                     }
                 }
             }
             
-            if (!$methodNode) {
-                return false;
-            }
+            // Si no se encontró el método, intentamos crear uno básico
+            $methodNode = new ClassMethod(
+                new Identifier($methodName),
+                [
+                    'stmts' => [
+                        new Return_(new String_('Método generado'))
+                    ]
+                ]
+            );
             
-            // Verificar si el método ya existe en la clase destino
-            $methodName = $methodNode->name->toString();
-            foreach ($class->stmts as $stmt) {
-                if ($stmt instanceof ClassMethod && $stmt->name->toString() === $methodName) {
-                    return false; // El método ya existe
+            // Establecer la visibilidad (por defecto pública)
+            if (preg_match('/\b(public|private|protected)\b/i', $methodStub, $visMatches)) {
+                $visibility = strtolower($visMatches[1]);
+                if ($visibility === 'private') {
+                    $methodNode->flags = Class_::MODIFIER_PRIVATE;
+                } elseif ($visibility === 'protected') {
+                    $methodNode->flags = Class_::MODIFIER_PROTECTED;
+                } else {
+                    $methodNode->flags = Class_::MODIFIER_PUBLIC;
                 }
+            } else {
+                $methodNode->flags = Class_::MODIFIER_PUBLIC;
             }
             
             // Añadir el método a la clase

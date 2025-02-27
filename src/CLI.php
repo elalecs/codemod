@@ -3,16 +3,8 @@
 namespace CodeModTool;
 
 use Symfony\Component\Console\Application;
-use CodeModTool\Commands\ModifyEnumCommand;
-use CodeModTool\Commands\BatchModifyEnumCommand;
-use CodeModTool\Commands\AddTraitCommand;
-use CodeModTool\Commands\BatchAddTraitsCommand;
-use CodeModTool\Commands\AddPropertyCommand;
-use CodeModTool\Commands\BatchAddPropertiesCommand;
-use CodeModTool\Commands\ModifyPropertyCommand;
-use CodeModTool\Commands\AddToArrayCommand;
-use CodeModTool\Commands\AddMethodCommand;
-use CodeModTool\Commands\BatchAddMethodsCommand;
+use CodeModTool\Commands\EnumModifyCommand;
+use CodeModTool\Commands\ClassModifyCommand;
 use CodeModTool\Parser\CodeParser;
 use CodeModTool\Modifiers\EnumModifier;
 use CodeModTool\Modifiers\ClassModifier;
@@ -27,65 +19,20 @@ class CLI
         $parser = new CodeParser();
         $fileHandler = new FileHandler();
         
-        // Registrar comandos para enums
-        $application->add(new ModifyEnumCommand(
-            $parser,
-            $fileHandler,
-            new EnumModifier()
-        ));
+        // Registrar comando unificado para enums
+        $enumModifier = new EnumModifier();
         
-        $application->add(new BatchModifyEnumCommand(
+        $application->add(new EnumModifyCommand(
             $parser,
             $fileHandler,
-            new EnumModifier()
+            $enumModifier
         ));
         
         // Comandos para modificar clases
         $classModifier = new ClassModifier();
         
-        $application->add(new AddTraitCommand(
-            $parser,
-            $fileHandler,
-            $classModifier
-        ));
-        
-        $application->add(new BatchAddTraitsCommand(
-            $parser,
-            $fileHandler,
-            $classModifier
-        ));
-        
-        $application->add(new AddPropertyCommand(
-            $parser,
-            $fileHandler,
-            $classModifier
-        ));
-        
-        $application->add(new BatchAddPropertiesCommand(
-            $parser,
-            $fileHandler,
-            $classModifier
-        ));
-        
-        $application->add(new ModifyPropertyCommand(
-            $parser,
-            $fileHandler,
-            $classModifier
-        ));
-        
-        $application->add(new AddToArrayCommand(
-            $parser,
-            $fileHandler,
-            $classModifier
-        ));
-        
-        $application->add(new AddMethodCommand(
-            $parser,
-            $fileHandler,
-            $classModifier
-        ));
-        
-        $application->add(new BatchAddMethodsCommand(
+        // Comando unificado para clases
+        $application->add(new ClassModifyCommand(
             $parser,
             $fileHandler,
             $classModifier
