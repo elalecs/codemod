@@ -40,11 +40,11 @@ expect()->extend('toBeOne', function () {
 */
 
 /**
- * Crea un archivo de clase de prueba
+ * Creates a test class file
  */
 function createTestClass(string $path = null): string
 {
-    // Usar directorio temporal si no se proporciona una ruta específica
+    // Use temporary directory if no specific path is provided
     if ($path === null) {
         $path = tempnam(sys_get_temp_dir(), 'test_class_') . '.php';
     }
@@ -67,11 +67,11 @@ class TestClass
 }
 
 /**
- * Crea un archivo stub de método de prueba
+ * Creates a test method stub file
  */
 function createTestStub(string $content, string $path = null): string
 {
-    // Usar directorio temporal si no se proporciona una ruta específica
+    // Use temporary directory if no specific path is provided
     if ($path === null) {
         $path = tempnam(sys_get_temp_dir(), 'test_stub_') . '.php';
     }
@@ -82,7 +82,7 @@ function createTestStub(string $content, string $path = null): string
 }
 
 /**
- * Limpia los archivos de prueba
+ * Cleans up test files
  */
 function cleanupTestFiles(array $files): void
 {
@@ -91,7 +91,7 @@ function cleanupTestFiles(array $files): void
             unlink($file);
         }
         
-        // También eliminar archivos de backup
+        // Also remove backup files
         $bakFile = $file . '.bak';
         if (file_exists($bakFile)) {
             unlink($bakFile);
@@ -100,7 +100,7 @@ function cleanupTestFiles(array $files): void
 }
 
 /**
- * Verifica si una clase contiene una propiedad específica
+ * Checks if a class contains a specific property
  */
 function class_has_property(string $className, string $propertyName, ?string $type = null, ?string $visibility = null): bool
 {
@@ -110,21 +110,21 @@ function class_has_property(string $className, string $propertyName, ?string $ty
     
     $content = file_get_contents($className);
     
-    // Construir el patrón regex según los parámetros proporcionados
+    // Build regex pattern according to provided parameters
     $visPattern = $visibility ? preg_quote($visibility) : '(public|protected|private)';
     $typePattern = $type ? preg_quote($type) : '[a-zA-Z0-9_\\\\]*';
     
-    // Patrón más flexible para detectar propiedades
-    // Acepta ambos formatos:
-    // 1. private string $propName = valor;
-    // 2. private $propName = valor;
+    // More flexible pattern to detect properties
+    // Accepts both formats:
+    // 1. private string $propName = value;
+    // 2. private $propName = value;
     $pattern = "/{$visPattern}\s+(?:{$typePattern}\s+)?\\\${$propertyName}(?:\s*=|\s*;)/i";
     
     return preg_match($pattern, $content) === 1;
 }
 
 /**
- * Verifica si una clase contiene un método específico
+ * Checks if a class contains a specific method
  */
 function class_has_method(string $className, string $methodName): bool
 {
@@ -134,13 +134,13 @@ function class_has_method(string $className, string $methodName): bool
     
     $content = file_get_contents($className);
     
-    // Buscar el método en el contenido del archivo
+    // Search for the method in the file content
     $pattern = "/function\s+{$methodName}\s*\(/i";
     return preg_match($pattern, $content) === 1;
 }
 
 /**
- * Verifica si una clase usa un trait específico
+ * Checks if a class uses a specific trait
  */
 function class_uses_trait(string $className, string $traitName): bool
 {
@@ -150,7 +150,7 @@ function class_uses_trait(string $className, string $traitName): bool
     
     $content = file_get_contents($className);
     
-    // Buscar el uso del trait en el contenido del archivo
+    // Search for the trait usage in the file content
     $pattern = "/use\s+{$traitName};/i";
     return preg_match($pattern, $content) === 1;
 } 

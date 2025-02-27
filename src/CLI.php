@@ -15,11 +15,11 @@ class CLI
     {
         $application = new Application('CodeMod Tool', '1.0.0');
         
-        // Servicios compartidos
+        // Shared services
         $parser = new CodeParser();
         $fileHandler = new FileHandler();
         
-        // Registrar comando unificado para enums
+        // Register unified command for enums
         $enumModifier = new EnumModifier();
         
         $application->add(new EnumModifyCommand(
@@ -28,10 +28,10 @@ class CLI
             $enumModifier
         ));
         
-        // Comandos para modificar clases
+        // Commands to modify classes
         $classModifier = new ClassModifier();
         
-        // Comando unificado para clases
+        // Unified command for classes
         $application->add(new ClassModifyCommand(
             $parser,
             $fileHandler,

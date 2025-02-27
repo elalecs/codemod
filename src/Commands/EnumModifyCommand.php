@@ -28,24 +28,24 @@ class EnumModifyCommand extends Command
     {
         $this
             ->setName('enum:modify')
-            ->setDescription('Modificar un enum: añadir casos y/o métodos')
-            ->addArgument('file', InputArgument::REQUIRED, 'Ruta al archivo del enum')
+            ->setDescription('Modify an enum: add cases and/or methods')
+            ->addArgument('file', InputArgument::REQUIRED, 'Path to the enum file')
             
-            // Opciones para casos individuales
-            ->addOption('case', null, InputOption::VALUE_REQUIRED, 'Nombre del caso a añadir')
-            ->addOption('value', null, InputOption::VALUE_REQUIRED, 'Valor del caso a añadir')
+            // Individual case options
+            ->addOption('case', null, InputOption::VALUE_REQUIRED, 'Name of the case to add')
+            ->addOption('value', null, InputOption::VALUE_REQUIRED, 'Value of the case to add')
             
-            // Opciones para múltiples casos
-            ->addOption('cases', null, InputOption::VALUE_REQUIRED, 'Múltiples casos en formato "CASO1=valor1,CASO2=valor2"')
-            ->addOption('cases-file', null, InputOption::VALUE_REQUIRED, 'Archivo con casos a añadir (uno por línea en formato "CASO=valor")')
+            // Multiple cases options
+            ->addOption('cases', null, InputOption::VALUE_REQUIRED, 'Multiple cases in format "CASE1=value1,CASE2=value2"')
+            ->addOption('cases-file', null, InputOption::VALUE_REQUIRED, 'File with cases to add (one per line in format "CASE=value")')
             
-            // Opciones para métodos
-            ->addOption('method', null, InputOption::VALUE_REQUIRED, 'Código del método a añadir')
-            ->addOption('methods', null, InputOption::VALUE_REQUIRED, 'Múltiples métodos en formato PHP puro')
-            ->addOption('methods-file', null, InputOption::VALUE_REQUIRED, 'Archivo con métodos a añadir')
+            // Method options
+            ->addOption('method', null, InputOption::VALUE_REQUIRED, 'Method code to add')
+            ->addOption('methods', null, InputOption::VALUE_REQUIRED, 'Multiple methods in pure PHP format')
+            ->addOption('methods-file', null, InputOption::VALUE_REQUIRED, 'File with methods to add')
             
-            // Modo simulación
-            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Mostrar cambios sin aplicarlos');
+            // Simulation mode
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show changes without applying them');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -53,40 +53,40 @@ class EnumModifyCommand extends Command
         $filePath = $input->getArgument('file');
         $isDryRun = $input->getOption('dry-run');
         
-        // Opciones de casos
+        // Case options
         $caseName = $input->getOption('case');
         $caseValue = $input->getOption('value');
         $casesString = $input->getOption('cases');
         $casesFile = $input->getOption('cases-file');
         
-        // Opciones de métodos
+        // Method options
         $methodCode = $input->getOption('method');
         $methodsContent = $input->getOption('methods');
         $methodsFile = $input->getOption('methods-file');
         
-        // Verificar que se proporciona al menos una opción
+        // Verify that at least one option is provided
         if (!$caseName && !$casesString && !$casesFile && !$methodCode && !$methodsContent && !$methodsFile) {
-            $output->writeln("<e>Debe proporcionar al menos una opción: --case, --cases, --cases-file, --method, --methods o --methods-file</e>");
+            $output->writeln("<error>You must provide at least one option: --case, --cases, --cases-file, --method, --methods or --methods-file</error>");
             return Command::FAILURE;
         }
         
-        // Validar que si se proporciona --case, también se proporcione --value
+        // Validate that if --case is provided, --value is also provided
         if ($caseName && !$caseValue) {
-            $output->writeln("<e>Si se proporciona --case, también debe proporcionarse --value</e>");
+            $output->writeln("<error>If --case is provided, --value must also be provided</error>");
             return Command::FAILURE;
         }
         
         try {
-            // Leer el código del archivo
+            // Read the code from the file
             $code = $this->fileHandler->read($filePath);
             $ast = $this->parser->parse($code);
             
-            // Crear una copia del AST para trabajar con ella
+            // Create a copy of the AST to work with
             $traverser = new NodeTraverser();
             $traverser->addVisitor(new CloningVisitor());
             $modifiedAst = $traverser->traverse($ast);
             
-            // Encontrar el nodo del enum
+            // Find the enum node
             $enumNode = null;
             foreach ($modifiedAst as $node) {
                 if ($node instanceof Enum_) {
@@ -96,19 +96,19 @@ class EnumModifyCommand extends Command
             }
             
             if (!$enumNode) {
-                $output->writeln("<e>No se encontró ningún enum en el archivo especificado</e>");
+                $output->writeln("<error>No enum found in the specified file</error>");
                 return Command::FAILURE;
             }
             
-            // Contadores para seguimiento de cambios
+            // Counters to track changes
             $casesAdded = 0;
             $methodsAdded = 0;
             
-            // Procesamiento de casos
+            // Process cases
             if ($caseName && $caseValue) {
                 $this->modifier->addCase($enumNode, $caseName, $caseValue);
                 $casesAdded++;
-                $output->writeln("<info>Caso $caseName agregado</info>");
+                $output->writeln("<info>Case $caseName added</info>");
             }
             
             if ($casesString) {
@@ -116,13 +116,13 @@ class EnumModifyCommand extends Command
                 foreach ($casesArray as $name => $value) {
                     $this->modifier->addCase($enumNode, $name, $value);
                     $casesAdded++;
-                    $output->writeln("<info>Caso $name agregado</info>");
+                    $output->writeln("<info>Case $name added</info>");
                 }
             }
             
             if ($casesFile) {
                 if (!file_exists($casesFile)) {
-                    $output->writeln("<e>Archivo de casos no encontrado: $casesFile</e>");
+                    $output->writeln("<error>Cases file not found: $casesFile</error>");
                     return Command::FAILURE;
                 }
                 
@@ -132,18 +132,18 @@ class EnumModifyCommand extends Command
                 foreach ($casesArray as $name => $value) {
                     $this->modifier->addCase($enumNode, $name, $value);
                     $casesAdded++;
-                    $output->writeln("<info>Caso $name agregado</info>");
+                    $output->writeln("<info>Case $name added</info>");
                 }
             }
             
-            // Procesamiento de métodos
+            // Process methods
             if ($methodCode) {
                 if ($this->modifier->addMethod($enumNode, $methodCode)) {
                     $methodName = $this->extractMethodName($methodCode);
                     $methodsAdded++;
-                    $output->writeln("<info>Método $methodName agregado</info>");
+                    $output->writeln("<info>Method $methodName added</info>");
                 } else {
-                    $output->writeln("<e>Error al añadir el método</e>");
+                    $output->writeln("<error>Error adding the method</error>");
                 }
             }
             
@@ -153,14 +153,14 @@ class EnumModifyCommand extends Command
                     if ($this->modifier->addMethod($enumNode, $method)) {
                         $methodName = $this->extractMethodName($method);
                         $methodsAdded++;
-                        $output->writeln("<info>Método $methodName agregado</info>");
+                        $output->writeln("<info>Method $methodName added</info>");
                     }
                 }
             }
             
             if ($methodsFile) {
                 if (!file_exists($methodsFile)) {
-                    $output->writeln("<e>Archivo de métodos no encontrado: $methodsFile</e>");
+                    $output->writeln("<error>Methods file not found: $methodsFile</error>");
                     return Command::FAILURE;
                 }
                 
@@ -171,47 +171,47 @@ class EnumModifyCommand extends Command
                     if ($this->modifier->addMethod($enumNode, $method)) {
                         $methodName = $this->extractMethodName($method);
                         $methodsAdded++;
-                        $output->writeln("<info>Método $methodName agregado</info>");
+                        $output->writeln("<info>Method $methodName added</info>");
                     }
                 }
             }
             
-            // Verificar si se realizó algún cambio
+            // Check if any changes were made
             if ($casesAdded === 0 && $methodsAdded === 0) {
-                $output->writeln("<e>No se realizó ningún cambio</e>");
+                $output->writeln("<error>No changes were made</error>");
                 return Command::FAILURE;
             }
             
-            // Generar el código modificado
+            // Generate the modified code
             $newCode = $this->parser->generateCode($modifiedAst);
             
-            // Modo dry-run
+            // Dry-run mode
             if ($isDryRun) {
-                $output->writeln("<info>Modo dry-run: Mostrando cambios sin aplicarlos</info>");
+                $output->writeln("<info>Dry-run mode: Showing changes without applying them</info>");
                 $this->showDiff($output, $code, $newCode);
-                $output->writeln("<info>Total de casos agregados: $casesAdded</info>");
-                $output->writeln("<info>Total de métodos agregados: $methodsAdded</info>");
-                $output->writeln("<comment>[MODO DRY-RUN] Cambios NO aplicados</comment>");
+                $output->writeln("<info>Total of cases added: $casesAdded</info>");
+                $output->writeln("<info>Total of methods added: $methodsAdded</info>");
+                $output->writeln("<comment>[DRY-RUN MODE] Changes NOT applied</comment>");
                 return Command::SUCCESS;
             }
             
-            // Escribir los cambios al archivo
+            // Write the changes to the file
             $this->fileHandler->write($filePath, $newCode);
             
-            // Mostrar resumen
-            $output->writeln("<info>Total de casos agregados: $casesAdded</info>");
-            $output->writeln("<info>Total de métodos agregados: $methodsAdded</info>");
+            // Show summary
+            $output->writeln("<info>Total of cases added: $casesAdded</info>");
+            $output->writeln("<info>Total of methods added: $methodsAdded</info>");
             
             return Command::SUCCESS;
             
         } catch (\Exception $e) {
-            $output->writeln("<e>Error: {$e->getMessage()}</e>");
+            $output->writeln("<error>Error: {$e->getMessage()}</error>");
             return Command::FAILURE;
         }
     }
     
     /**
-     * Parsear una cadena de casos en formato "CASO1=valor1,CASO2=valor2"
+     * Parse a cases string in format "CASE1=value1,CASE2=value2"
      */
     private function parseCasesString(string $casesString): array
     {
@@ -222,7 +222,7 @@ class EnumModifyCommand extends Command
             $pair = trim($pair);
             if (empty($pair)) continue;
             
-            // Soporte para formatos CASO=valor y CASO='valor'
+            // Support for formats CASE=value and CASE='value'
             if (preg_match('/^([A-Z0-9_]+)=[\'"]{0,1}(.*?)[\'"]{0,1}$/', $pair, $matches)) {
                 $cases[$matches[1]] = $matches[2];
             }
@@ -232,7 +232,7 @@ class EnumModifyCommand extends Command
     }
     
     /**
-     * Parsear casos desde el contenido de un archivo (uno por línea)
+     * Parse cases from file content (one per line)
      */
     private function parseCasesFromFileContent(string $content): array
     {
@@ -241,12 +241,12 @@ class EnumModifyCommand extends Command
         
         foreach ($lines as $line) {
             $line = trim($line);
-            if (empty($line) || $line[0] === '#' || $line[0] === '/') continue; // Saltar comentarios y líneas vacías
+            if (empty($line) || $line[0] === '#' || $line[0] === '/') continue; // Skip comments and empty lines
             
-            // Soporte para varios formatos:
-            // CASO = 'valor'
-            // CASO='valor'
-            // case CASO = 'valor';
+            // Support for various formats:
+            // CASE = 'value'
+            // CASE='value'
+            // case CASE = 'value';
             if (preg_match('/(?:case\s+)?([A-Z0-9_]+)\s*=\s*[\'"]{0,1}(.*?)[\'"]{0,1}\s*;?$/', $line, $matches)) {
                 $cases[$matches[1]] = $matches[2];
             }
@@ -256,16 +256,16 @@ class EnumModifyCommand extends Command
     }
     
     /**
-     * Parsear métodos desde una cadena o contenido de archivo
+     * Parse methods from a string or file content
      */
     private function parseMethods(string $content): array
     {
         $methods = [];
         
-        // Eliminar etiqueta PHP si existe
+        // Remove PHP tag if it exists
         $content = preg_replace('/^\s*<\?php\s*/i', '', $content);
         
-        // Buscar métodos basados en la declaración function
+        // Find methods based on function declaration
         preg_match_all('/\s*(public|private|protected)?\s*(static)?\s*function\s+(\w+)\s*\([^)]*\)\s*(?::\s*[^{]+)?\s*\{(?:[^{}]|(?R))*\}/s', $content, $matches, PREG_SET_ORDER);
         
         foreach ($matches as $match) {
@@ -276,30 +276,30 @@ class EnumModifyCommand extends Command
     }
     
     /**
-     * Extraer el nombre de un método a partir de su código
+     * Extract the method name from its code
      */
     private function extractMethodName(string $methodCode): string
     {
         preg_match('/function\s+(\w+)\s*\(/i', $methodCode, $matches);
-        return $matches[1] ?? 'desconocido';
+        return $matches[1] ?? 'unknown';
     }
     
     /**
-     * Mostrar las diferencias entre dos bloques de código
+     * Show the differences between two code blocks
      */
     private function showDiff(OutputInterface $output, string $original, string $modified): void
     {
-        $output->writeln('<info>[MODO DRY-RUN] Cambios propuestos:</info>');
+        $output->writeln('<info>[DRY-RUN MODE] Proposed changes:</info>');
         
         $differ = new \SebastianBergmann\Diff\Differ(new \SebastianBergmann\Diff\Output\StrictUnifiedDiffOutputBuilder([
             'collapseRanges'      => true,
             'commonLineThreshold' => 6,
             'contextLines'        => 3,
             'fromFile'            => 'Original',
-            'toFile'              => 'Modificado',
+            'toFile'              => 'Modified',
         ]));
 
         $output->writeln($differ->diff($original, $modified));
-        $output->writeln('<info>[MODO DRY-RUN] Finalizado. No se han aplicado cambios.</info>');
+        $output->writeln('<info>[DRY-RUN MODE] Finished. No changes have been applied.</info>');
     }
 } 

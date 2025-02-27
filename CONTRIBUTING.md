@@ -1,36 +1,40 @@
-# Guía de Contribución para CodeMod Tool
+# Contributing Guide for CodeMod Tool
 
-## Arquitectura del Proyecto
+## Project Architecture
 
-### Visión General
+### Overview
 
-CodeMod Tool es una herramienta de línea de comandos diseñada para modificar automáticamente código PHP mediante el análisis y manipulación del AST (Abstract Syntax Tree). La herramienta está construida con PHP y se distribuye como un archivo PHAR ejecutable.
+CodeMod Tool is a command-line tool designed to automatically modify PHP code by analyzing and manipulating the AST (Abstract Syntax Tree). The tool is built with PHP and distributed as an executable PHAR file.
 
-### Estructura de Directorios
+### Directory Structure
 
 ```
 codemod-tool/
-├── bin/                  # Scripts ejecutables
-│   └── codemod           # Punto de entrada principal (PHP)
-├── src/                  # Código fuente
-│   ├── Commands/         # Comandos de Symfony Console
-│   ├── Modifiers/        # Modificadores de código
-│   ├── Parser/           # Analizadores de código
-│   ├── CLI.php           # Clase principal de la aplicación
-│   └── FileHandler.php   # Manejo de archivos
-├── tests/                # Pruebas y ejemplos
-├── vendor/               # Dependencias (gestionadas por Composer)
-├── box.json              # Configuración para construir el PHAR
-├── composer.json         # Dependencias y scripts
-├── codemod.phar          # Archivo PHAR ejecutable (generado)
-└── stub.php              # Punto de entrada del PHAR
+├── bin/                  # Executable scripts
+│   └── codemod           # Main entry point (PHP)
+├── src/                  # Source code
+│   ├── Commands/         # Symfony Console commands
+│   ├── Modifiers/        # Code modifiers
+│   ├── Parser/           # Code parsers
+│   ├── CLI.php           # Main application class
+│   └── FileHandler.php   # File handling utilities
+├── tests/                # Tests and examples
+│   ├── Feature/          # Feature tests
+│   ├── Unit/             # Unit tests
+│   ├── Fixtures/         # Test fixtures and auxiliary files
+│   └── Pest.php          # Pest PHP testing framework configuration
+├── vendor/               # Dependencies (managed by Composer)
+├── box.json              # Configuration for building the PHAR
+├── composer.json         # Dependencies and scripts
+├── codemod.phar          # Executable PHAR file (generated)
+└── stub.php              # PHAR entry point
 ```
 
-## Flujo de Ejecución
+## Execution Flow
 
-### 1. Punto de Entrada: `bin/codemod`
+### 1. Entry Point: `bin/codemod`
 
-Este archivo es el punto de entrada principal cuando se ejecuta el proyecto directamente desde el código fuente. Su contenido es simple:
+This file is the main entry point when running the project directly from source code. Its content is simple:
 
 ```php
 #!/usr/bin/env php
@@ -40,19 +44,19 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use CodeModTool\CLI;
 
-// Iniciar la aplicación CLI
+// Start the CLI application
 $app = new CLI();
 $app->run();
 ```
 
-Este script:
-1. Carga el autoloader de Composer
-2. Instancia la clase `CLI`
-3. Ejecuta el método `run()`
+This script:
+1. Loads the Composer autoloader
+2. Instantiates the `CLI` class
+3. Runs the `run()` method
 
-### 2. Clase Principal: `src/CLI.php`
+### 2. Main Class: `src/CLI.php`
 
-Esta clase es el núcleo de la aplicación. Configura la aplicación de Symfony Console y registra los comandos disponibles:
+This class is the core of the application. It configures the Symfony Console application and registers the available commands:
 
 ```php
 <?php
@@ -60,65 +64,188 @@ Esta clase es el núcleo de la aplicación. Configura la aplicación de Symfony 
 namespace CodeModTool;
 
 use Symfony\Component\Console\Application;
-use CodeModTool\Commands\ModifyEnumCommand;
+use CodeModTool\Commands\ClassModifyCommand;
+use CodeModTool\Commands\EnumModifyCommand;
 use CodeModTool\Parser\CodeParser;
+use CodeModTool\Modifiers\ClassModifier;
 use CodeModTool\Modifiers\EnumModifier;
 
 class CLI
 {
     public function run(): int
     {
-        $application = new Application('CodeMod Tool', '1.0.0');
-        $application->add(new ModifyEnumCommand(
+        $application = new Application('CodeMod Tool', '1.0.1');
+        
+        // Register commands
+        $application->add(new ClassModifyCommand(
+            new CodeParser(),
+            new FileHandler(),
+            new ClassModifier()
+        ));
+        
+        $application->add(new EnumModifyCommand(
             new CodeParser(),
             new FileHandler(),
             new EnumModifier()
         ));
+        
         return $application->run();
     }
 }
 ```
 
-### 3. Comandos: `src/Commands/`
+### 3. Commands: `src/Commands/`
 
-Los comandos implementan la interfaz de línea de comandos utilizando Symfony Console. Por ejemplo, `ModifyEnumCommand.php` maneja el comando `enum:modify`:
+Commands implement the command-line interface using Symfony Console. The main commands are:
+
+#### ClassModifyCommand
+
+A unified command for all class modifications:
+- Adding traits (single or from file)
+- Adding properties (single or from file)
+- Modifying properties
+- Adding to arrays
+- Adding methods (single or from file)
 
 ```php
-class ModifyEnumCommand extends Command
+class ClassModifyCommand extends Command
+{
+    // ...
+    
+    protected function configure()
+    {
+        $this->setName('class:modify')
+            ->setDescription('Modify a PHP class')
+            ->addArgument('file', InputArgument::REQUIRED, 'Path to class file')
+            ->addOption('add-trait', null, InputOption::VALUE_REQUIRED, 'Trait to add')
+            ->addOption('traits-file', null, InputOption::VALUE_REQUIRED, 'File containing traits to add')
+            ->addOption('add-property', null, InputOption::VALUE_REQUIRED, 'Property to add')
+            ->addOption('properties-file', null, InputOption::VALUE_REQUIRED, 'File containing properties to add')
+            // ... more options
+    }
+    
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        // Command implementation
+    }
+}
+```
+
+#### EnumModifyCommand
+
+A command for modifying PHP enums:
+- Adding cases (single or from file)
+- Adding methods (single or from file)
+
+```php
+class EnumModifyCommand extends Command
 {
     // ...
     
     protected function configure()
     {
         $this->setName('enum:modify')
-            ->setDescription('Add a case to an enum')
+            ->setDescription('Modify a PHP enum')
             ->addArgument('file', InputArgument::REQUIRED, 'Path to enum file')
-            ->addOption('case', null, InputOption::VALUE_REQUIRED, 'Case name')
-            ->addOption('value', null, InputOption::VALUE_REQUIRED, 'Case value');
+            ->addOption('case', null, InputOption::VALUE_REQUIRED, 'Case to add')
+            ->addOption('value', null, InputOption::VALUE_REQUIRED, 'Case value')
+            ->addOption('cases-file', null, InputOption::VALUE_REQUIRED, 'File containing cases to add')
+            ->addOption('add-method', null, InputOption::VALUE_REQUIRED, 'Method to add')
+            ->addOption('methods-file', null, InputOption::VALUE_REQUIRED, 'File containing methods to add')
+            // ... more options
     }
     
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // Implementación del comando
+        // Command implementation
     }
 }
 ```
 
-### 4. Componentes Principales
+### 4. Core Components
 
-- **Parser (`src/Parser/CodeParser.php`)**: Utiliza `nikic/php-parser` para analizar el código PHP y convertirlo en un AST.
-- **Modifiers (`src/Modifiers/`)**: Contiene clases que modifican el AST para realizar cambios específicos en el código.
-- **FileHandler (`src/FileHandler.php`)**: Maneja la lectura y escritura de archivos, incluyendo la creación de copias de seguridad.
+- **Parser (`src/Parser/CodeParser.php`)**: Uses `nikic/php-parser` to parse PHP code into an AST.
+- **Modifiers (`src/Modifiers/`)**: Contains classes that modify the AST to make specific changes to the code.
+  - `ClassModifier`: Handles modifications to PHP classes
+  - `EnumModifier`: Handles modifications to PHP enums
+- **FileHandler (`src/FileHandler.php`)**: Handles file reading and writing, including backup creation.
 
-## Empaquetado con Box (PHAR)
+## Testing Framework
 
-### ¿Qué es Box?
+### Test Structure
 
-[Box](https://github.com/box-project/box) es una herramienta que permite empaquetar aplicaciones PHP en un único archivo PHAR ejecutable. PHAR (PHP Archive) es similar a un archivo JAR en Java, permitiendo distribuir una aplicación completa como un único archivo.
+- **Feature Tests**: Test the commands from a user perspective
+- **Unit Tests**: Test individual components in isolation
+- **Fixtures**: Contains test classes, enums, and other files used by tests
+- **Pest.php**: Configuration and helper functions for the Pest PHP testing framework
 
-### Proceso de Construcción del PHAR
+### Test Helpers
 
-1. **Configuración**: El archivo `box.json` define cómo se construirá el PHAR:
+The `tests/Pest.php` file contains helper functions for tests:
+
+```php
+/**
+ * Creates a test class file
+ */
+function createTestClass(string $path = null): string
+{
+    // Use system temp directory if no path provided
+    if ($path === null) {
+        $path = tempnam(sys_get_temp_dir(), 'test_class_') . '.php';
+    }
+    
+    // Write test class content
+    // ...
+    
+    return $path;
+}
+
+/**
+ * Creates a test stub file
+ */
+function createTestStub(string $content, string $path = null): string
+{
+    // Use system temp directory if no path provided
+    // ...
+}
+
+/**
+ * Verifies if a class has a specific property
+ */
+function class_has_property(string $className, string $propertyName, ?string $type = null, ?string $visibility = null): bool
+{
+    // Check if the property exists in the class
+    // ...
+}
+
+/**
+ * Verifies if a class has a specific method
+ */
+function class_has_method(string $className, string $methodName, ?string $returnType = null, ?string $visibility = null): bool
+{
+    // Check if the method exists in the class
+    // ...
+}
+
+/**
+ * Verifies if a class uses a specific trait
+ */
+function class_uses_trait(string $className, string $traitName): bool
+{
+    // Check if the trait is used in the class
+    // ...
+}
+```
+
+## Packaging with Box (PHAR)
+
+### What is Box?
+
+[Box](https://github.com/box-project/box) is a tool that allows packaging PHP applications into a single executable PHAR file. PHAR (PHP Archive) is similar to a JAR file in Java, allowing distribution of an entire application as a single file.
+
+### PHAR Build Process
+
+1. **Configuration**: The `box.json` file defines how the PHAR will be built:
 
 ```json
 {
@@ -130,7 +257,7 @@ class ModifyEnumCommand extends Command
 }
 ```
 
-2. **Stub**: El archivo `stub.php` es el punto de entrada del PHAR:
+2. **Stub**: The `stub.php` file is the entry point of the PHAR:
 
 ```php
 #!/usr/bin/env php
@@ -140,108 +267,126 @@ require 'phar://codemod.phar/bin/codemod';
 __HALT_COMPILER(); 
 ```
 
-Este stub:
-   - Mapea el PHAR a un nombre específico
-   - Carga el script principal (`bin/codemod`)
-   - Finaliza la compilación con `__HALT_COMPILER()`
+This stub:
+   - Maps the PHAR to a specific name
+   - Loads the main script (`bin/codemod`)
+   - Finalizes compilation with `__HALT_COMPILER()`
 
-3. **Construcción**: El comando `composer run build` ejecuta:
-   - `composer install --no-dev`: Instala dependencias sin las de desarrollo
-   - `./box.phar compile`: Construye el PHAR según la configuración
+3. **Building**: The `composer run build` command executes:
+   - `composer install --no-dev`: Installs dependencies without development ones
+   - `./box.phar compile`: Builds the PHAR according to the configuration
 
-### Relación entre `codemod.phar` y `bin/codemod`
+### Relationship between `codemod.phar` and `bin/codemod`
 
-- `bin/codemod` es el punto de entrada cuando se ejecuta desde el código fuente
-- Cuando se construye el PHAR, `bin/codemod` se incluye dentro del archivo PHAR
-- `stub.php` actúa como puente, cargando `bin/codemod` desde dentro del PHAR
-- El resultado final (`codemod.phar`) es un archivo ejecutable independiente que contiene toda la aplicación
+- `bin/codemod` is the entry point when running from source code
+- When building the PHAR, `bin/codemod` is included inside the PHAR file
+- `stub.php` acts as a bridge, loading `bin/codemod` from inside the PHAR
+- The final result (`codemod.phar`) is a standalone executable file containing the entire application
 
-## Flujo de Datos
+## Data Flow
 
-1. El usuario ejecuta `codemod.phar enum:modify archivo.php --case=NUEVO --value=valor`
-2. El stub carga `bin/codemod` desde dentro del PHAR
-3. `bin/codemod` instancia `CLI` y ejecuta `run()`
-4. `CLI` configura la aplicación Symfony Console y registra los comandos
-5. Symfony Console analiza los argumentos y opciones, y ejecuta `ModifyEnumCommand`
-6. `ModifyEnumCommand` utiliza:
-   - `CodeParser` para analizar el código PHP
-   - `EnumModifier` para modificar el AST
-   - `FileHandler` para leer/escribir archivos
-7. El código modificado se guarda en el archivo original, con una copia de seguridad
+1. The user runs `codemod.phar class:modify file.php --add-trait=NewTrait`
+2. The stub loads `bin/codemod` from inside the PHAR
+3. `bin/codemod` instantiates `CLI` and runs `run()`
+4. `CLI` configures the Symfony Console application and registers commands
+5. Symfony Console parses arguments and options, and executes `ClassModifyCommand`
+6. `ClassModifyCommand` uses:
+   - `CodeParser` to parse the PHP code
+   - `ClassModifier` to modify the AST
+   - `FileHandler` to read/write files
+7. The modified code is saved to the original file, with a backup created
 
-## Cómo Contribuir
+## How to Contribute
 
-### Configuración del Entorno de Desarrollo
+### Setting Up the Development Environment
 
-1. Clonar el repositorio:
+1. Clone the repository:
    ```bash
-   git clone [url-del-repositorio]
+   git clone [repository-url]
    cd codemod-tool
    ```
 
-2. Instalar dependencias:
+2. Install dependencies:
    ```bash
    composer install
    ```
 
-3. Instalar Box (si no está instalado):
+3. Install Box (if not installed):
    ```bash
    bash install-box.sh
    ```
 
-### Flujo de Trabajo para Contribuciones
+### Contribution Workflow
 
-1. **Crear una rama**: `git checkout -b feature/nueva-funcionalidad`
-2. **Implementar cambios**: Añadir/modificar código en `src/`
-3. **Probar localmente**:
+1. **Create a branch**: `git checkout -b feature/new-functionality`
+2. **Implement changes**: Add/modify code in `src/`
+3. **Test locally**:
    ```bash
-   php bin/codemod [comando] [opciones]
+   php bin/codemod [command] [options]
    ```
-4. **Construir el PHAR**:
+4. **Run tests**:
+   ```bash
+   vendor/bin/pest
+   ```
+5. **Build the PHAR**:
    ```bash
    composer run build
    ```
-5. **Probar el PHAR**:
+6. **Test the PHAR**:
    ```bash
-   php codemod.phar [comando] [opciones]
+   php codemod.phar [command] [options]
    ```
-6. **Enviar Pull Request**: Con una descripción clara de los cambios
+7. **Submit Pull Request**: With a clear description of the changes
 
-### Añadir Nuevos Comandos
+### Adding New Commands
 
-1. Crear una nueva clase en `src/Commands/` que extienda `Symfony\Component\Console\Command\Command`
-2. Implementar los métodos `configure()` y `execute()`
-3. Registrar el comando en `src/CLI.php`
+1. Create a new class in `src/Commands/` that extends `Symfony\Component\Console\Command\Command`
+2. Implement the `configure()` and `execute()` methods
+3. Register the command in `src/CLI.php`
 
-### Añadir Nuevos Modificadores
+### Adding New Modifiers
 
-1. Crear una nueva clase en `src/Modifiers/`
-2. Implementar métodos para modificar el AST
-3. Crear un comando correspondiente o actualizar uno existente para utilizar el nuevo modificador
+1. Create a new class in `src/Modifiers/`
+2. Implement methods to modify the AST
+3. Create a corresponding command or update an existing one to use the new modifier
 
-## Consejos para Depuración
+### Adding Tests
 
-- Usar la opción `-vvv` para obtener información detallada:
+1. Add feature tests in `tests/Feature/`
+2. Add unit tests in `tests/Unit/`
+3. Add any required test fixtures in `tests/Fixtures/`
+4. Run tests using Pest: `vendor/bin/pest`
+
+## Debugging Tips
+
+- Use the `-vvv` option for detailed information:
   ```bash
-  php codemod.phar -vvv enum:modify archivo.php --case=NUEVO --value=valor
+  php codemod.phar -vvv class:modify file.php --add-trait=NewTrait
   ```
 
-- Inspeccionar el contenido del PHAR:
+- Use dry-run mode to preview changes without applying them:
+  ```bash
+  php codemod.phar class:modify file.php --add-trait=NewTrait --dry-run
+  ```
+
+- Inspect the PHAR contents:
   ```bash
   php -r "print_r(new Phar('codemod.phar'));"
   ```
 
-- Verificar las copias de seguridad (`.bak`) después de cada modificación
+- Check backup files (`.bak`) after each modification
 
-## Convenciones de Código
+## Code Conventions
 
-- Seguir PSR-12 para el estilo de código
-- Documentar todas las clases y métodos con DocBlocks
-- Mantener una cobertura de pruebas adecuada
-- Utilizar tipos de retorno y declaraciones de tipo cuando sea posible
+- Follow PSR-12 for code style
+- Document all classes and methods with DocBlocks
+- Maintain adequate test coverage
+- Use return types and type declarations when possible
+- Create tests for all new functionalities
 
-## Recursos Adicionales
+## Additional Resources
 
-- [Documentación de PHP-Parser](https://github.com/nikic/PHP-Parser/blob/master/doc/0_Introduction.markdown)
-- [Documentación de Symfony Console](https://symfony.com/doc/current/components/console.html)
-- [Documentación de Box](https://github.com/box-project/box/blob/main/doc/index.md) 
+- [PHP-Parser Documentation](https://github.com/nikic/PHP-Parser/blob/master/doc/0_Introduction.markdown)
+- [Symfony Console Documentation](https://symfony.com/doc/current/components/console.html)
+- [Box Documentation](https://github.com/box-project/box/blob/main/doc/index.md)
+- [Pest PHP Documentation](https://pestphp.com/docs/installation) 

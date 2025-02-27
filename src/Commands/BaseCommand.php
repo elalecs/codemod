@@ -34,7 +34,7 @@ abstract class BaseCommand extends Command
             'dry-run',
             null,
             InputOption::VALUE_NONE,
-            'Muestra los cambios que se realizarían sin aplicarlos realmente'
+            'Shows the changes that would be made without actually applying them'
         );
     }
 
@@ -43,19 +43,19 @@ abstract class BaseCommand extends Command
         $this->isDryRun = $input->getOption('dry-run');
         
         if ($this->isDryRun) {
-            $output->writeln('<info>Ejecutando en modo dry-run. No se realizarán cambios reales.</info>');
+            $output->writeln('<info>Running in dry-run mode. No actual changes will be made.</info>');
         }
     }
 
     /**
-     * Escribe el contenido en el archivo o muestra los cambios en modo dry-run
+     * Writes the content to the file or shows the changes in dry-run mode
      */
     protected function writeChanges(InputInterface $input, OutputInterface $output, string $filePath, string $newCode, string $originalCode): int
     {
         if ($this->isDryRun) {
-            $output->writeln('<info>Cambios que se realizarían (modo dry-run):</info>');
+            $output->writeln('<info>Changes that would be made (dry-run mode):</info>');
             
-            // Mostrar un diff simple
+            // Show a simple diff
             $diff = $this->generateSimpleDiff($originalCode, $newCode);
             $output->writeln($diff);
             
@@ -66,13 +66,13 @@ abstract class BaseCommand extends Command
             $this->fileHandler->write($filePath, $newCode);
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $output->writeln("<error>Error al escribir el archivo: {$e->getMessage()}</error>");
+            $output->writeln("<error>Error writing the file: {$e->getMessage()}</error>");
             return Command::FAILURE;
         }
     }
     
     /**
-     * Genera un diff simple entre dos cadenas de texto
+     * Generates a simple diff between two text strings
      */
     private function generateSimpleDiff(string $original, string $new): array
     {
@@ -81,7 +81,7 @@ abstract class BaseCommand extends Command
         
         $diff = [];
         $diff[] = '<comment>--- Original</comment>';
-        $diff[] = '<comment>+++ Modificado</comment>';
+        $diff[] = '<comment>+++ Modified</comment>';
         
         $maxLines = max(count($originalLines), count($newLines));
         
@@ -98,7 +98,7 @@ abstract class BaseCommand extends Command
                     $diff[] = "<fg=green>+ " . htmlspecialchars($newLine) . "</>";
                 }
             } else {
-                // Mostrar solo algunas líneas de contexto
+                // Show only some context lines
                 if ($i > 0 && $i < $maxLines - 1) {
                     $prevDiff = end($diff);
                     if (strpos($prevDiff, '-') === 0 || strpos($prevDiff, '+') === 0) {

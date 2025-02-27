@@ -1,5 +1,5 @@
 {
-    "name": "gesta/codemod",
+    "name": "elalecs/codemod",
     "description": "PHP Code Modification Tool",
     "type": "project",
     "require": {

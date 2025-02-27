@@ -8,14 +8,14 @@ use CodeModTool\Modifiers\ClassModifier;
 use Symfony\Component\Console\Application;
 
 beforeEach(function () {
-    // Crear una clase de prueba en directorio temporal
+    // Create a test class in a temporary directory
     $this->testClassPath = createTestClass();
     
-    // Crear archivos para probar imports de traits en directorio temporal
+    // Create files to test trait imports in a temporary directory
     $this->traitsFilePath = tempnam(sys_get_temp_dir(), 'traits_file_') . '.txt';
     file_put_contents($this->traitsFilePath, "TestTrait1\nTestTrait2\nApp\\Traits\\TestTrait3");
     
-    // Crear un archivo para propiedades en directorio temporal
+    // Create a file for properties in a temporary directory
     $this->propertiesFilePath = tempnam(sys_get_temp_dir(), 'properties_file_') . '.json';
     file_put_contents($this->propertiesFilePath, json_encode([
         [
@@ -32,7 +32,7 @@ beforeEach(function () {
         ]
     ], JSON_PRETTY_PRINT));
     
-    // Crear un archivo para métodos en directorio temporal
+    // Create a file for methods in a temporary directory
     $this->methodsFilePath = tempnam(sys_get_temp_dir(), 'methods_file_') . '.php';
     file_put_contents($this->methodsFilePath, "
     public function methodFromFile1(): string
@@ -46,7 +46,7 @@ beforeEach(function () {
     }
     ");
     
-    // Copiar archivos de métodos de Fixtures si es necesario
+    // Copy method files from Fixtures if needed
     $fixturesDir = __DIR__ . '/../Fixtures/';
     $this->methodStubPath = tempnam(sys_get_temp_dir(), 'method_stub_') . '.php';
     file_put_contents($this->methodStubPath, file_exists($fixturesDir . 'method_stub.php') 
@@ -55,7 +55,7 @@ beforeEach(function () {
 });
 
 afterEach(function () {
-    // Limpiar después del test
+    // Clean up after the test
     cleanupTestFiles([
         $this->testClassPath,
         $this->traitsFilePath,
@@ -65,8 +65,8 @@ afterEach(function () {
     ]);
 });
 
-// Prueba para agregar un trait
-test('Case 01: class:modify agrega un trait a una clase', function () {
+// Test for adding a trait
+test('Case 01: class:modify adds a trait to a class', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -85,16 +85,16 @@ test('Case 01: class:modify agrega un trait a una clase', function () {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar el mensaje de éxito
-    expect($output)->toContain('Trait TestTrait agregado');
+    // Verify success message
+    expect($output)->toContain('Trait TestTrait added');
     
-    // Verificar que el trait se añadió al archivo
+    // Verify that the trait was added to the file
     $classContent = file_get_contents($this->testClassPath);
     expect($classContent)->toContain('use TestTrait;');
 });
 
-// Prueba para agregar múltiples traits
-test('Case 02: class:modify agrega múltiples traits con la opción --traits', function () {
+// Test for adding multiple traits
+test('Case 02: class:modify adds multiple traits with the --traits option', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -113,21 +113,21 @@ test('Case 02: class:modify agrega múltiples traits con la opción --traits', f
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Trait Trait1 agregado');
-    expect($output)->toContain('Trait Trait2 agregado');
-    expect($output)->toContain('Trait App\\Traits\\Trait3 agregado');
-    expect($output)->toContain('Total de traits agregados: 3');
+    // Verify success messages
+    expect($output)->toContain('Trait Trait1 added');
+    expect($output)->toContain('Trait Trait2 added');
+    expect($output)->toContain('Trait App\\Traits\\Trait3 added');
+    expect($output)->toContain('Total of traits added: 3');
     
-    // Verificar que los traits se añadieron al archivo
+    // Verify that the traits were added to the file
     $classContent = file_get_contents($this->testClassPath);
     expect($classContent)->toContain('use Trait1;');
     expect($classContent)->toContain('use Trait2;');
     expect($classContent)->toContain('use App\\Traits\\Trait3;');
 });
 
-// Prueba para agregar traits desde un archivo
-test('Case 03: class:modify agrega traits desde un archivo', function () {
+// Test for adding traits from a file
+test('Case 03: class:modify adds traits from a file', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -146,21 +146,21 @@ test('Case 03: class:modify agrega traits desde un archivo', function () {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Trait TestTrait1 agregado');
-    expect($output)->toContain('Trait TestTrait2 agregado');
-    expect($output)->toContain('Trait App\\Traits\\TestTrait3 agregado');
-    expect($output)->toContain('Total de traits agregados: 3');
+    // Verify success messages
+    expect($output)->toContain('Trait TestTrait1 added');
+    expect($output)->toContain('Trait TestTrait2 added');
+    expect($output)->toContain('Trait App\\Traits\\TestTrait3 added');
+    expect($output)->toContain('Total of traits added: 3');
     
-    // Verificar que los traits se añadieron al archivo
+    // Verify that the traits were added to the file
     $classContent = file_get_contents($this->testClassPath);
     expect($classContent)->toContain('use TestTrait1;');
     expect($classContent)->toContain('use TestTrait2;');
     expect($classContent)->toContain('use App\\Traits\\TestTrait3;');
 });
 
-// Prueba para agregar una propiedad
-test('Case 04: class:modify agrega una propiedad a una clase', function () {
+// Test for adding a property
+test('Case 04: class:modify adds a property to a class', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -179,16 +179,16 @@ test('Case 04: class:modify agrega una propiedad a una clase', function () {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar el mensaje de éxito
-    expect($output)->toContain('Propiedad testProp añadida');
+    // Verify success message
+    expect($output)->toContain('Property testProp added');
     
-    // Verificar que la propiedad se añadió al archivo
+    // Verify that the property was added to the file
     $classContent = file_get_contents($this->testClassPath);
     expect($classContent)->toContain('private string $testProp = \'Test Value\';');
 });
 
-// Prueba para agregar múltiples propiedades desde JSON
-test('Case 05: class:modify agrega múltiples propiedades con la opción --properties', function () {
+// Test for adding multiple properties from JSON
+test('Case 05: class:modify adds multiple properties with the --properties option', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -222,20 +222,20 @@ test('Case 05: class:modify agrega múltiples propiedades con la opción --prope
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Propiedad prop1 añadida');
-    expect($output)->toContain('Propiedad prop2 añadida');
-    expect($output)->toContain('Total de propiedades añadidas: 2');
+    // Verify success messages
+    expect($output)->toContain('Property prop1 added');
+    expect($output)->toContain('Property prop2 added');
+    expect($output)->toContain('Total of properties added: 2');
     
-    // Verificar que las propiedades se añadieron al archivo
+    // Verify that the properties were added to the file
     $classContent = file_get_contents($this->testClassPath);
     expect($classContent)->toContain('private string $prop1 = \'value1\';');
     expect($classContent)->toContain('protected int $prop2 = 42;');
 });
 
-// Prueba para agregar propiedades desde un archivo
-test('Case 06: class:modify agrega propiedades desde un archivo', function () {
-    // Crear archivo de propiedades
+// Test for adding properties from a file
+test('Case 06: class:modify adds properties from a file', function () {
+    // Create properties file
     $propertiesJson = json_encode([
         [
             'name' => 'propFromFile1',
@@ -269,18 +269,18 @@ test('Case 06: class:modify agrega propiedades desde un archivo', function () {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Propiedad propFromFile1 añadida');
-    expect($output)->toContain('Propiedad propFromFile2 añadida');
-    expect($output)->toContain('Total de propiedades añadidas: 2');
+    // Verify success messages
+    expect($output)->toContain('Property propFromFile1 added from file');
+    expect($output)->toContain('Property propFromFile2 added from file');
+    expect($output)->toContain('Total of properties added: 2');
     
-    // Verificar que las propiedades se añadieron al archivo usando la función de ayuda
+    // Verify that the properties were added to the file using the helper function
     expect(class_has_property($this->testClassPath, 'propFromFile1', 'string', 'private'))->toBeTrue();
     expect(class_has_property($this->testClassPath, 'propFromFile2', 'array', 'protected'))->toBeTrue();
 });
 
-// Prueba para modificar una propiedad existente
-test('Case 07: class:modify modifica una propiedad existente', function () {
+// Test for modifying an existing property
+test('Case 07: class:modify modifies an existing property', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -290,37 +290,37 @@ test('Case 07: class:modify modifica una propiedad existente', function () {
     
     $command = $application->find('class:modify');
     
-    // Primero añadimos una propiedad
+    // First, add a property
     $commandTester = new CommandTester($command);
     $commandTester->execute([
         'file' => $this->testClassPath,
-        '--property' => 'propToModify:string=valor original'
+        '--property' => 'propToModify:string=original value'
     ]);
     
-    // Verificar que la propiedad se añadió correctamente
+    // Verify that the property was added correctly
     expect(class_has_property($this->testClassPath, 'propToModify', 'string', 'private'))->toBeTrue();
     
-    // Ahora la modificamos
+    // Now modify it
     $commandTester = new CommandTester($command);
     $commandTester->execute([
         'file' => $this->testClassPath,
         '--modify-property' => 'propToModify',
-        '--new-value' => 'valor modificado',
+        '--new-value' => 'modified value',
         '--new-visibility' => 'protected'
     ]);
     
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar el mensaje de éxito
-    expect($output)->toContain('Propiedad propToModify modificada');
+    // Verify success message
+    expect($output)->toContain('Property propToModify modified');
     
-    // Verificar que la propiedad se modificó correctamente
+    // Verify that the property was modified correctly
     expect(class_has_property($this->testClassPath, 'propToModify', 'string', 'protected'))->toBeTrue();
 });
 
-// Prueba para agregar elementos a un array
-test('Case 08: class:modify agrega un elemento a una propiedad array', function () {
+// Test for adding an element to an array
+test('Case 08: class:modify adds an element to a property array', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -330,14 +330,14 @@ test('Case 08: class:modify agrega un elemento a una propiedad array', function 
     
     $command = $application->find('class:modify');
     
-    // Primero añadimos una propiedad array
+    // First, add a property array
     $commandTester = new CommandTester($command);
     $commandTester->execute([
         'file' => $this->testClassPath,
         '--property' => 'items:array=["item1", "item2"]'
     ]);
     
-    // Ahora añadimos un elemento al array
+    // Now add an element to the array
     $commandTester = new CommandTester($command);
     $commandTester->execute([
         'file' => $this->testClassPath,
@@ -348,16 +348,16 @@ test('Case 08: class:modify agrega un elemento a una propiedad array', function 
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar el mensaje de éxito
-    expect($output)->toContain('Elemento agregado al array items');
+    // Verify success message
+    expect($output)->toContain('Element added to array items');
     
-    // Verificar que el elemento se añadió al array en el archivo
+    // Verify that the element was added to the array in the file
     $classContent = file_get_contents($this->testClassPath);
     expect($classContent)->toContain('item3');
 });
 
-// Prueba para agregar un método
-test('Case 09: class:modify agrega un método a una clase', function () {
+// Test for adding a method
+test('Case 09: class:modify adds a method to a class', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -378,15 +378,15 @@ test('Case 09: class:modify agrega un método a una clase', function () {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar el mensaje de éxito
-    expect($output)->toContain('Método testMethod agregado');
+    // Verify success message
+    expect($output)->toContain('Method testMethod added');
     
-    // Verificar que el método se añadió correctamente
+    // Verify that the method was added correctly
     expect(class_has_method($this->testClassPath, 'testMethod', 'string', 'public'))->toBeTrue();
 });
 
-// Prueba para agregar múltiples métodos
-test('Case 10: class:modify agrega múltiples métodos con la opción --methods', function () {
+// Test for adding multiple methods
+test('Case 10: class:modify adds multiple methods with the --methods option', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -415,19 +415,19 @@ test('Case 10: class:modify agrega múltiples métodos con la opción --methods'
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Método method1 agregado');
-    expect($output)->toContain('Método method2 agregado');
-    expect($output)->toContain('Total de métodos agregados: 2');
+    // Verify success messages
+    expect($output)->toContain('Method method1 added');
+    expect($output)->toContain('Method method2 added');
+    expect($output)->toContain('Total of methods added: 2');
     
-    // Verificar que los métodos se añadieron correctamente
+    // Verify that the methods were added correctly
     expect(class_has_method($this->testClassPath, 'method1', 'string', 'public'))->toBeTrue();
     expect(class_has_method($this->testClassPath, 'method2', null, 'protected'))->toBeTrue();
 });
 
-// Prueba para agregar métodos desde un archivo
-test('Case 11: class:modify agrega métodos desde un archivo', function () {
-    // Crear archivo de métodos
+// Test for adding methods from a file
+test('Case 11: class:modify adds methods from a file', function () {
+    // Create methods file
     $methodsContent = '
         public function fileMethod1(): array {
             return ["result" => "from file"];
@@ -456,17 +456,17 @@ test('Case 11: class:modify agrega métodos desde un archivo', function () {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Método fileMethod1 agregado');
-    expect($output)->toContain('Método fileMethod2 agregado');
+    // Verify success messages
+    expect($output)->toContain('Method fileMethod1 added');
+    expect($output)->toContain('Method fileMethod2 added');
     
-    // Verificar que los métodos se añadieron correctamente
+    // Verify that the methods were added correctly
     expect(class_has_method($this->testClassPath, 'fileMethod1', 'array', 'public'))->toBeTrue();
     expect(class_has_method($this->testClassPath, 'fileMethod2', 'bool', 'protected'))->toBeTrue();
 });
 
-// Prueba para combinar diferentes tipos de modificaciones
-test('Case 12: class:modify permite combinar diferentes tipos de modificaciones', function () {
+// Test for combining different types of modifications
+test('Case 12: class:modify allows combining different types of modifications', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -486,19 +486,19 @@ test('Case 12: class:modify permite combinar diferentes tipos de modificaciones'
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Trait CombinedTrait agregado');
-    expect($output)->toContain('Propiedad combinedProp añadida');
-    expect($output)->toContain('Método combinedMethod agregado');
+    // Verify success messages
+    expect($output)->toContain('Trait CombinedTrait added');
+    expect($output)->toContain('Property combinedProp added');
+    expect($output)->toContain('Method combinedMethod added');
     
-    // Verificar que se aplicaron todas las modificaciones
+    // Verify that all modifications were applied
     expect(class_uses_trait($this->testClassPath, 'CombinedTrait'))->toBeTrue();
     expect(class_has_property($this->testClassPath, 'combinedProp', 'string', 'private'))->toBeTrue();
     expect(class_has_method($this->testClassPath, 'combinedMethod', 'void', 'public'))->toBeTrue();
 });
 
-// Prueba de modo dry-run
-test('Case 13: class:modify en modo dry-run muestra cambios sin aplicarlos', function () {
+// Test for dry-run mode
+test('Case 13: class:modify in dry-run mode shows changes without applying them', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -509,33 +509,33 @@ test('Case 13: class:modify en modo dry-run muestra cambios sin aplicarlos', fun
     $command = $application->find('class:modify');
     $commandTester = new CommandTester($command);
     
-    // Guardar contenido original para comparación
+    // Save original code for comparison
     $originalCode = file_get_contents($this->testClassPath);
     
     $commandTester->execute([
         'file' => $this->testClassPath,
         '--trait' => 'DryRunTrait',
-        '--property' => 'dryRunProp:string=Valor dry run',
-        '--method' => 'public function dryRunMethod(): void { /* método dry run */ }',
+        '--property' => 'dryRunProp:string=Dry run value',
+        '--method' => 'public function dryRunMethod(): void { /* dry run method */ }',
         '--dry-run' => true
     ]);
     
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Modo dry-run: Mostrando cambios sin aplicarlos');
-    expect($output)->toContain('Trait DryRunTrait agregado');
-    expect($output)->toContain('Propiedad dryRunProp añadida');
-    expect($output)->toContain('Método dryRunMethod agregado');
+    // Verify success messages
+    expect($output)->toContain('Dry-run mode: Showing changes without applying them');
+    expect($output)->toContain('Trait DryRunTrait added');
+    expect($output)->toContain('Property dryRunProp added');
+    expect($output)->toContain('Method dryRunMethod added');
     
-    // Verificar que el código no se modificó
+    // Verify that the code was not modified
     $codeAfter = file_get_contents($this->testClassPath);
     expect($codeAfter)->toBe($originalCode);
 });
 
-// Prueba para verificar que el modo dry-run no modifica el archivo
-test('Case 14: class:modify en modo dry-run no modifica el archivo', function () {
+// Test for verifying that dry-run mode does not modify the file
+test('Case 14: class:modify in dry-run mode does not modify the file', function () {
     $application = new Application();
     $application->add(new ClassModifyCommand(
         new CodeParser(),
@@ -545,7 +545,7 @@ test('Case 14: class:modify en modo dry-run no modifica el archivo', function ()
     
     $command = $application->find('class:modify');
     
-    // Guardar el contenido original del archivo
+    // Save original file content
     $originalCode = file_get_contents($this->testClassPath);
     
     $commandTester = new CommandTester($command);
@@ -558,11 +558,11 @@ test('Case 14: class:modify en modo dry-run no modifica el archivo', function ()
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar que muestra el mensaje de dry-run
-    expect($output)->toContain('Modo dry-run');
-    expect($output)->toContain('Método dryRunMethod agregado');
+    // Verify that dry-run message is shown
+    expect($output)->toContain('Dry-run mode');
+    expect($output)->toContain('Method dryRunMethod added');
     
-    // Verificar que el código no se modificó
+    // Verify that the code was not modified
     $codeAfter = file_get_contents($this->testClassPath);
     expect($codeAfter)->toBe($originalCode);
 }); 

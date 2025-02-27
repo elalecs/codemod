@@ -30,39 +30,39 @@ class ClassModifyCommand extends Command
     {
         $this
             ->setName('class:modify')
-            ->setDescription('Modificar una clase: añadir traits, propiedades, métodos y más')
-            ->addArgument('file', InputArgument::REQUIRED, 'Ruta al archivo de la clase')
+            ->setDescription('Modify a class: add traits, properties, methods and more')
+            ->addArgument('file', InputArgument::REQUIRED, 'Path to the class file')
             
-            // Opciones para traits
-            ->addOption('trait', null, InputOption::VALUE_REQUIRED, 'Nombre del trait a añadir (incluyendo namespace)')
-            ->addOption('traits', null, InputOption::VALUE_REQUIRED, 'Lista de traits separados por coma para añadir')
-            ->addOption('traits-file', null, InputOption::VALUE_REQUIRED, 'Archivo con traits a añadir (uno por línea)')
+            // Trait options
+            ->addOption('trait', null, InputOption::VALUE_REQUIRED, 'Name of the trait to add (including namespace)')
+            ->addOption('traits', null, InputOption::VALUE_REQUIRED, 'Comma-separated list of traits to add')
+            ->addOption('traits-file', null, InputOption::VALUE_REQUIRED, 'File with traits to add (one per line)')
             
-            // Opciones para propiedades
-            ->addOption('property', null, InputOption::VALUE_REQUIRED, 'Definición de propiedad en formato "nombre:tipo=valor"')
-            ->addOption('properties', null, InputOption::VALUE_REQUIRED, 'Múltiples propiedades en formato JSON o PHP')
-            ->addOption('properties-file', null, InputOption::VALUE_REQUIRED, 'Archivo con propiedades a añadir')
+            // Property options
+            ->addOption('property', null, InputOption::VALUE_REQUIRED, 'Property definition in format "name:type=value"')
+            ->addOption('properties', null, InputOption::VALUE_REQUIRED, 'Multiple properties in JSON or PHP format')
+            ->addOption('properties-file', null, InputOption::VALUE_REQUIRED, 'File with properties to add')
             
-            // Opciones para modificar propiedades
-            ->addOption('modify-property', null, InputOption::VALUE_REQUIRED, 'Nombre de la propiedad a modificar')
-            ->addOption('new-value', null, InputOption::VALUE_REQUIRED, 'Nuevo valor para la propiedad')
-            ->addOption('new-type', null, InputOption::VALUE_REQUIRED, 'Nuevo tipo para la propiedad')
-            ->addOption('new-visibility', null, InputOption::VALUE_REQUIRED, 'Nueva visibilidad para la propiedad (private, protected, public)')
+            // Property modification options
+            ->addOption('modify-property', null, InputOption::VALUE_REQUIRED, 'Name of the property to modify')
+            ->addOption('new-value', null, InputOption::VALUE_REQUIRED, 'New value for the property')
+            ->addOption('new-type', null, InputOption::VALUE_REQUIRED, 'New type for the property')
+            ->addOption('new-visibility', null, InputOption::VALUE_REQUIRED, 'New visibility for the property (private, protected, public)')
             
-            // Opciones para arrays
-            ->addOption('add-to-array', null, InputOption::VALUE_REQUIRED, 'Nombre de la propiedad array a la que añadir un elemento')
-            ->addOption('key', null, InputOption::VALUE_REQUIRED, 'Clave para el nuevo elemento del array')
-            ->addOption('array-value', null, InputOption::VALUE_REQUIRED, 'Valor para el nuevo elemento del array')
-            ->addOption('string', null, InputOption::VALUE_NONE, 'Tratar valores numéricos como strings para arrays')
+            // Array options
+            ->addOption('add-to-array', null, InputOption::VALUE_REQUIRED, 'Name of the array property to add an element to')
+            ->addOption('key', null, InputOption::VALUE_REQUIRED, 'Key for the new array element')
+            ->addOption('array-value', null, InputOption::VALUE_REQUIRED, 'Value for the new array element')
+            ->addOption('string', null, InputOption::VALUE_NONE, 'Treat numeric values as strings for arrays')
             
-            // Opciones para métodos
-            ->addOption('method', null, InputOption::VALUE_REQUIRED, 'Código del método a añadir')
-            ->addOption('methods', null, InputOption::VALUE_REQUIRED, 'Múltiples métodos en formato PHP puro')
-            ->addOption('methods-file', null, InputOption::VALUE_REQUIRED, 'Archivo con métodos a añadir')
-            ->addOption('methods-dir', null, InputOption::VALUE_REQUIRED, 'Directorio con archivos de métodos a añadir')
+            // Method options
+            ->addOption('method', null, InputOption::VALUE_REQUIRED, 'Method code to add')
+            ->addOption('methods', null, InputOption::VALUE_REQUIRED, 'Multiple methods in pure PHP format')
+            ->addOption('methods-file', null, InputOption::VALUE_REQUIRED, 'File with methods to add')
+            ->addOption('methods-dir', null, InputOption::VALUE_REQUIRED, 'Directory with method files to add')
             
-            // Modo simulación
-            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Mostrar cambios sin aplicarlos');
+            // Simulation mode
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show changes without applying them');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -71,61 +71,61 @@ class ClassModifyCommand extends Command
         $isDryRun = $input->getOption('dry-run');
         
         if ($isDryRun) {
-            $output->writeln('<info>Modo dry-run: Mostrando cambios sin aplicarlos</info>');
+            $output->writeln('<info>Dry-run mode: Showing changes without applying them</info>');
         }
         
-        // Opciones de traits
+        // Trait options
         $traitName = $input->getOption('trait');
         $traitsString = $input->getOption('traits');
         $traitsFile = $input->getOption('traits-file');
         
-        // Opciones de propiedades
+        // Property options
         $propertyDefinition = $input->getOption('property');
         $propertiesContent = $input->getOption('properties');
         $propertiesFile = $input->getOption('properties-file');
         
-        // Opciones para modificar propiedades
+        // Property modification options
         $modifyPropertyName = $input->getOption('modify-property');
         $newValue = $input->getOption('new-value');
         $newType = $input->getOption('new-type');
         $newVisibility = $input->getOption('new-visibility');
         
-        // Opciones para arrays
+        // Array options
         $arrayPropertyName = $input->getOption('add-to-array');
         $arrayKey = $input->getOption('key');
         $arrayValue = $input->getOption('array-value');
         $treatAsString = $input->getOption('string');
         
-        // Opciones para métodos
+        // Method options
         $methodCode = $input->getOption('method');
         $methodsContent = $input->getOption('methods');
         $methodsFile = $input->getOption('methods-file');
         $methodsDir = $input->getOption('methods-dir');
         
-        // Verificar si se proporcionó al menos una opción de modificación
+        // Verify that at least one modification option was provided
         if (!$traitName && !$traitsString && !$traitsFile &&
             !$propertyDefinition && !$propertiesContent && !$propertiesFile &&
             !$modifyPropertyName &&
             !$arrayPropertyName &&
             !$methodCode && !$methodsContent && !$methodsFile && !$methodsDir) {
-            $output->writeln('<error>Debe proporcionar al menos una opción para modificar la clase</error>');
+            $output->writeln('<e>You must provide at least one option to modify the class</e>');
             return Command::FAILURE;
         }
         
         try {
-            // Verificar si el archivo existe
+            // Verify if the file exists
             if (!file_exists($filePath)) {
-                $output->writeln("<error>El archivo '$filePath' no existe</error>");
+                $output->writeln("<e>The file '$filePath' does not exist</e>");
                 return Command::FAILURE;
             }
             
-            // Leer el código original
+            // Read the original code
             $originalCode = file_get_contents($filePath);
             
-            // Parsear el código
+            // Parse the code
             $ast = $this->parser->parse($originalCode);
             
-            // Encontrar la clase en el AST
+            // Find the class in the AST
             $class = null;
             foreach ($ast as $node) {
                 if ($node instanceof Class_) {
@@ -135,16 +135,16 @@ class ClassModifyCommand extends Command
             }
             
             if (!$class) {
-                $output->writeln("<error>No se encontró una clase en el archivo '$filePath'</error>");
+                $output->writeln("<e>No class found in the file '$filePath'</e>");
                 return Command::FAILURE;
             }
             
-            // Hacer una copia del AST original para posibles modificaciones
+            // Make a copy of the original AST for possible modifications
             $traverser = new NodeTraverser();
             $traverser->addVisitor(new CloningVisitor());
             $astCopy = $traverser->traverse($ast);
             
-            // Encontrar la clase en la copia del AST
+            // Find the class in the AST copy
             $classCopy = null;
             foreach ($astCopy as $node) {
                 if ($node instanceof Class_) {
@@ -153,20 +153,20 @@ class ClassModifyCommand extends Command
                 }
             }
             
-            // Variables para contar cambios
+            // Variables to count changes
             $traitsAdded = 0;
             $propertiesAdded = 0;
             $propertiesModified = 0;
             $arrayElementsAdded = 0;
             $methodsAdded = 0;
             
-            // Procesar traits
+            // Process traits
             if ($traitName) {
                 if ($this->modifier->addTrait($classCopy, $traitName)) {
-                    $output->writeln("<info>Trait $traitName agregado</info>");
+                    $output->writeln("<info>Trait $traitName added</info>");
                     $traitsAdded++;
                 } else {
-                    $output->writeln("<comment>El trait $traitName ya existe o no pudo ser agregado</comment>");
+                    $output->writeln("<comment>The trait $traitName already exists or could not be added</comment>");
                 }
             }
             
@@ -176,10 +176,10 @@ class ClassModifyCommand extends Command
                     if (empty($trait)) continue;
                     
                     if ($this->modifier->addTrait($classCopy, $trait)) {
-                        $output->writeln("<info>Trait $trait agregado</info>");
+                        $output->writeln("<info>Trait $trait added</info>");
                         $traitsAdded++;
                     } else {
-                        $output->writeln("<comment>El trait $trait ya existe o no pudo ser agregado</comment>");
+                        $output->writeln("<comment>The trait $trait already exists or could not be added</comment>");
                     }
                 }
             }
@@ -189,24 +189,24 @@ class ClassModifyCommand extends Command
                 $traits = array_filter(array_map('trim', explode("\n", $fileContent)));
                 
                 foreach ($traits as $trait) {
-                    if (empty($trait) || $trait[0] === '#' || $trait[0] === '/') continue; // Saltar comentarios
+                    if (empty($trait) || $trait[0] === '#' || $trait[0] === '/') continue; // Skip comments
                     
                     if ($this->modifier->addTrait($classCopy, $trait)) {
-                        $output->writeln("<info>Trait $trait agregado</info>");
+                        $output->writeln("<info>Trait $trait added</info>");
                         $traitsAdded++;
                     } else {
-                        $output->writeln("<comment>El trait $trait ya existe o no pudo ser agregado</comment>");
+                        $output->writeln("<comment>The trait $trait already exists or could not be added</comment>");
                     }
                 }
             }
             
-            // Procesar propiedades y arrays
+            // Process properties and arrays
             if ($propertyDefinition) {
-                // Formato: nombre:tipo=valor
+                // Format: name:type=value
                 if (str_contains($propertyDefinition, '=')) {
                     list($nameWithType, $valueString) = explode('=', $propertyDefinition, 2);
                     
-                    // Extraer tipo si está presente
+                    // Extract type if present
                     if (str_contains($nameWithType, ':')) {
                         list($name, $type) = explode(':', $nameWithType, 2);
                     } else {
@@ -214,17 +214,17 @@ class ClassModifyCommand extends Command
                         $type = null;
                     }
                     
-                    // Convertir valor según el tipo
+                    // Convert value according to type
                     $value = $this->convertValue($valueString, $type);
                     
-                    // Por defecto, visibilidad privada
+                    // Default to private visibility
                     $visibility = Class_::MODIFIER_PRIVATE;
                     
                     $this->modifier->addProperty($classCopy, $name, $value, $visibility, $type);
-                    $output->writeln("<info>Propiedad $name añadida</info>");
+                    $output->writeln("<info>Property $name added</info>");
                     $propertiesAdded++;
                 } else {
-                    $output->writeln("<error>Formato de propiedad inválido. Use 'nombre:tipo=valor'</error>");
+                    $output->writeln("<e>Invalid property format. Use 'name:type=value'</e>");
                 }
             }
             
@@ -238,19 +238,19 @@ class ClassModifyCommand extends Command
                     
                     if (!$name) continue;
                     
-                    // Convertir string de visibilidad a constante
+                    // Convert visibility string to constant
                     $visibility = $this->getVisibilityConstant($visibilityString);
                     
                     $this->modifier->addProperty($classCopy, $name, $value, $visibility, $type);
-                    $output->writeln("<info>Propiedad $name añadida</info>");
+                    $output->writeln("<info>Property $name added</info>");
                     $propertiesAdded++;
                 }
             }
             
-            // Procesar propiedades desde archivo
+            // Process properties from file
             if ($propertiesFile) {
                 if (!file_exists($propertiesFile)) {
-                    $output->writeln("<e>Archivo de propiedades no encontrado: $propertiesFile</e>");
+                    $output->writeln("<e>Properties file not found: $propertiesFile</e>");
                     return Command::FAILURE;
                 }
                 
@@ -263,7 +263,7 @@ class ClassModifyCommand extends Command
                             $visibilityStr = $property['visibility'] ?? 'private';
                             $type = $property['type'] ?? null;
                             
-                            // Convertir cadena de visibilidad a constante int
+                            // Convert visibility string to int constant
                             $visibility = match(strtolower($visibilityStr)) {
                                 'public' => Class_::MODIFIER_PUBLIC,
                                 'protected' => Class_::MODIFIER_PROTECTED,
@@ -279,57 +279,57 @@ class ClassModifyCommand extends Command
                             );
                             
                             $propertiesAdded++;
-                            $output->writeln("<info>Propiedad {$property['name']} añadida desde archivo</info>");
+                            $output->writeln("<info>Property {$property['name']} added from file</info>");
                         }
                     }
                 }
             }
             
             if ($modifyPropertyName) {
-                // Verificar si se proporcionaron opciones para modificar
+                // Verify if options to modify were provided
                 if ($newValue !== null || $newType !== null || $newVisibility !== null) {
                     $value = $newValue !== null ? $this->convertValue($newValue, $newType) : null;
                     $type = $newType;
                     
-                    // Convertir visibilidad a constante si se proporcionó
+                    // Convert visibility to constant if provided
                     $visibilityConstant = null;
                     if ($newVisibility !== null) {
                         $visibilityConstant = $this->getVisibilityConstant($newVisibility);
                     }
                     
                     if ($this->modifier->modifyProperty($classCopy, $modifyPropertyName, $value, $type, $visibilityConstant)) {
-                        $output->writeln("<info>Propiedad $modifyPropertyName modificada</info>");
+                        $output->writeln("<info>Property $modifyPropertyName modified</info>");
                         $propertiesModified++;
                     } else {
-                        $output->writeln("<error>No se encontró la propiedad $modifyPropertyName o no se pudo modificar</error>");
+                        $output->writeln("<e>Property $modifyPropertyName not found or could not be modified</e>");
                     }
                 } else {
-                    $output->writeln("<error>Debe proporcionar al menos una opción para modificar la propiedad (--new-value, --new-type, --new-visibility)</error>");
+                    $output->writeln("<e>You must provide at least one option to modify the property (--new-value, --new-type, --new-visibility)</e>");
                 }
             }
             
             if ($arrayPropertyName && $arrayValue !== null) {
-                // Convertir valor para el array
+                // Convert value for the array
                 if ($treatAsString && is_numeric($arrayValue)) {
                     $arrayValue = (string)$arrayValue;
                 }
                 
                 if ($this->modifier->addToArrayProperty($classCopy, $arrayPropertyName, $arrayKey, $arrayValue)) {
-                    $output->writeln("<info>Elemento agregado al array $arrayPropertyName</info>");
+                    $output->writeln("<info>Element added to array $arrayPropertyName</info>");
                     $arrayElementsAdded++;
                 } else {
-                    $output->writeln("<error>No se pudo añadir el elemento al array $arrayPropertyName. Verifique que la propiedad existe y es un array.</error>");
+                    $output->writeln("<e>Could not add element to array $arrayPropertyName. Verify that the property exists and is an array.</e>");
                 }
             }
             
-            // Procesar métodos
+            // Process methods
             if ($methodCode) {
                 if ($this->modifier->addMethod($classCopy, $methodCode)) {
                     $methodName = $this->extractMethodName($methodCode);
-                    $output->writeln("<info>Método $methodName agregado</info>");
+                    $output->writeln("<info>Method $methodName added</info>");
                     $methodsAdded++;
                 } else {
-                    $output->writeln("<error>No se pudo añadir el método. Verifique la sintaxis del código.</error>");
+                    $output->writeln("<e>Could not add the method. Verify the code syntax.</e>");
                 }
             }
             
@@ -339,18 +339,18 @@ class ClassModifyCommand extends Command
                 foreach ($methods as $method) {
                     if ($this->modifier->addMethod($classCopy, $method)) {
                         $methodName = $this->extractMethodName($method);
-                        $output->writeln("<info>Método $methodName agregado</info>");
+                        $output->writeln("<info>Method $methodName added</info>");
                         $methodsAdded++;
                     } else {
-                        $output->writeln("<error>No se pudo añadir un método. Verifique la sintaxis del código.</error>");
+                        $output->writeln("<e>Could not add a method. Verify the code syntax.</e>");
                     }
                 }
             }
             
-            // Procesar métodos desde archivo
+            // Process methods from file
             if ($methodsFile) {
                 if (!file_exists($methodsFile)) {
-                    $output->writeln("<e>Archivo de métodos no encontrado: $methodsFile</e>");
+                    $output->writeln("<e>Methods file not found: $methodsFile</e>");
                     return Command::FAILURE;
                 }
                 
@@ -360,12 +360,12 @@ class ClassModifyCommand extends Command
                 foreach ($individualMethods as $singleMethod) {
                     if ($this->modifier->addMethod($classCopy, $singleMethod)) {
                         $methodsAdded++;
-                        // Extraer el nombre del método para mostrarlo en el mensaje
+                        // Extract the method name to show in the message
                         if (preg_match('/function\s+(\w+)\s*\(/i', $singleMethod, $matches)) {
                             $methodName = $matches[1];
-                            $output->writeln("<info>Método $methodName agregado desde archivo</info>");
+                            $output->writeln("<info>Method $methodName added from file</info>");
                         } else {
-                            $output->writeln("<info>Método agregado desde archivo</info>");
+                            $output->writeln("<info>Method added from file</info>");
                         }
                     }
                 }
@@ -379,69 +379,69 @@ class ClassModifyCommand extends Command
                     
                     if ($this->modifier->addMethod($classCopy, $methodContent)) {
                         $methodName = $this->extractMethodName($methodContent);
-                        $output->writeln("<info>Método $methodName agregado desde " . basename($file) . "</info>");
+                        $output->writeln("<info>Method $methodName added from " . basename($file) . "</info>");
                         $methodsAdded++;
                     } else {
-                        $output->writeln("<error>No se pudo añadir el método desde " . basename($file) . ". Verifique la sintaxis del código.</error>");
+                        $output->writeln("<e>Could not add method from " . basename($file) . ". Verify the code syntax.</e>");
                     }
                 }
             }
             
-            // Mostrar resumen de cambios
+            // Show summary of changes
             if ($traitsAdded > 0) {
-                $output->writeln("<info>Total de traits agregados: $traitsAdded</info>");
+                $output->writeln("<info>Total of traits added: $traitsAdded</info>");
             }
             
             if ($propertiesAdded > 0) {
-                $output->writeln("<info>Total de propiedades añadidas: $propertiesAdded</info>");
+                $output->writeln("<info>Total of properties added: $propertiesAdded</info>");
             }
             
             if ($propertiesModified > 0) {
-                $output->writeln("<info>Total de propiedades modificadas: $propertiesModified</info>");
+                $output->writeln("<info>Total of properties modified: $propertiesModified</info>");
             }
             
             if ($arrayElementsAdded > 0) {
-                $output->writeln("<info>Total de elementos agregados a arrays: $arrayElementsAdded</info>");
+                $output->writeln("<info>Total of elements added to arrays: $arrayElementsAdded</info>");
             }
             
             if ($methodsAdded > 0) {
-                $output->writeln("<info>Total de métodos agregados: $methodsAdded</info>");
+                $output->writeln("<info>Total of methods added: $methodsAdded</info>");
             }
             
-            // Si no se hizo ningún cambio, mostrar mensaje
+            // If no changes were made, show message
             if ($traitsAdded === 0 && $propertiesAdded === 0 && $propertiesModified === 0 && $arrayElementsAdded === 0 && $methodsAdded === 0) {
-                $output->writeln("<comment>No se realizaron cambios en la clase</comment>");
+                $output->writeln("<comment>No changes were made to the class</comment>");
                 return Command::SUCCESS;
             }
             
-            // Generar código modificado
+            // Generate modified code
             $modifiedCode = $this->parser->generateCode($astCopy);
             
-            // En modo dry-run, mostrar las diferencias sin aplicar los cambios
+            // In dry-run mode, show the differences without applying the changes
             if ($isDryRun) {
-                $output->writeln('<info>[MODO DRY-RUN] Cambios propuestos:</info>');
+                $output->writeln('<info>[DRY-RUN MODE] Proposed changes:</info>');
                 $diff = $this->showDiff($originalCode, $modifiedCode);
                 $output->writeln($diff);
-                $output->writeln('<info>[MODO DRY-RUN] Cambios NO aplicados</info>');
+                $output->writeln('<info>[DRY-RUN MODE] Changes NOT applied</info>');
             } else {
-                // Aplicar los cambios
-                // Crear backup
+                // Apply the changes
+                // Create backup
                 file_put_contents("$filePath.bak", $originalCode);
                 file_put_contents($filePath, $modifiedCode);
-                $output->writeln("<info>Cambios aplicados a $filePath</info>");
-                $output->writeln("<info>Backup guardado en $filePath.bak</info>");
+                $output->writeln("<info>Changes applied to $filePath</info>");
+                $output->writeln("<info>Backup saved to $filePath.bak</info>");
             }
             
             return Command::SUCCESS;
             
         } catch (\Exception $e) {
-            $output->writeln("<error>Error: {$e->getMessage()}</error>");
+            $output->writeln("<e>Error: {$e->getMessage()}</e>");
             return Command::FAILURE;
         }
     }
     
     /**
-     * Muestra las diferencias entre dos versiones de código
+     * Shows the differences between two code versions
      */
     private function showDiff(string $originalCode, string $modifiedCode): string
     {
@@ -450,7 +450,7 @@ class ClassModifyCommand extends Command
             'commonLineThreshold' => 6,
             'contextLines'        => 3,
             'fromFile'            => 'Original',
-            'toFile'              => 'Modificado',
+            'toFile'              => 'Modified',
         ]);
         
         $differ = new Differ($builder);
@@ -458,17 +458,17 @@ class ClassModifyCommand extends Command
     }
     
     /**
-     * Convierte un valor string al tipo adecuado
+     * Converts a string value to the appropriate type
      */
     private function convertValue(string $valueString, ?string $type): mixed
     {
-        // Eliminar comillas si están presentes
+        // Remove quotes if present
         if ((str_starts_with($valueString, '"') && str_ends_with($valueString, '"')) ||
             (str_starts_with($valueString, "'") && str_ends_with($valueString, "'"))) {
             $valueString = substr($valueString, 1, -1);
         }
         
-        // Convertir según el tipo
+        // Convert according to type
         if ($type === 'bool' || $type === 'boolean') {
             return strtolower($valueString) === 'true' || $valueString === '1';
         } elseif ($type === 'int' || $type === 'integer') {
@@ -478,13 +478,13 @@ class ClassModifyCommand extends Command
         } elseif ($type === 'array') {
             return json_decode($valueString, true) ?? [];
         } else {
-            // String u otro tipo
+            // String or other type
             return $valueString;
         }
     }
     
     /**
-     * Convierte una string de visibilidad a la constante correspondiente
+     * Converts a visibility string to the corresponding constant
      */
     private function getVisibilityConstant(string $visibility): int
     {
@@ -496,49 +496,49 @@ class ClassModifyCommand extends Command
     }
     
     /**
-     * Extrae el nombre del método de una definición
+     * Extracts the method name from a definition
      */
     private function extractMethodName(string $methodCode): string
     {
         if (preg_match('/function\s+([a-zA-Z0-9_]+)/i', $methodCode, $matches)) {
             return $matches[1];
         }
-        return 'desconocido';
+        return 'unknown';
     }
     
     /**
-     * Parsea propiedades desde una string en formato JSON o PHP
+     * Parses properties from a string in JSON or PHP format
      */
     private function parseProperties(string $content): array
     {
         $content = trim($content);
         $properties = [];
         
-        // Intentar parsear como JSON
+        // Try to parse as JSON
         try {
             $json = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
             if (is_array($json)) {
-                // Si es un objeto JSON, usarlo directamente
+                // If it's a JSON object, use it directly
                 if (isset($json['name'])) {
                     $properties[] = $json;
                 } else {
-                    // Si es un array de objetos, usarlo como está
+                    // If it's an array of objects, use it as is
                     $properties = $json;
                 }
             }
         } catch (\Exception $e) {
-            // No es JSON válido, intentar parsear como PHP
+            // Not valid JSON, try to parse as PHP
             $lines = explode("\n", $content);
             
             foreach ($lines as $line) {
                 $line = trim($line);
                 
-                // Saltar líneas vacías y comentarios
+                // Skip empty lines and comments
                 if (empty($line) || $line[0] === '#' || $line[0] === '/' || $line[0] === '*') {
                     continue;
                 }
                 
-                // Intentar extraer propiedades en formato:
+                // Try to extract properties in format:
                 // [visibility] [type] $name = value;
                 $pattern = '/\s*(public|private|protected)?\s*([a-zA-Z0-9_\\\]+)?\s*\$([a-zA-Z0-9_]+)\s*=\s*(.*?);/i';
                 
@@ -548,7 +548,7 @@ class ClassModifyCommand extends Command
                     $name = $matches[3];
                     $valueString = $matches[4];
                     
-                    // Intentar evaluar el valor si es posible
+                    // Try to evaluate the value if possible
                     try {
                         $value = eval("return $valueString;");
                     } catch (\Throwable $e) {
@@ -569,29 +569,29 @@ class ClassModifyCommand extends Command
     }
     
     /**
-     * Parsea métodos desde una string
+     * Parses methods from a string
      */
     private function parseMethods(string $content): array
     {
         $content = trim($content);
         $methods = [];
         
-        // Si el contenido está vacío, devolver un array vacío
+        // If the content is empty, return an empty array
         if (empty($content)) {
             return [];
         }
         
-        // Si el contenido comienza con <?php, eliminarlo para el procesamiento
+        // If the content starts with <?php, remove it for processing
         if (str_starts_with($content, '<?php')) {
             $content = preg_replace('/^\s*<\?php\s*/i', '', $content);
         }
         
-        // Intentar extraer funciones individuales usando regex
+        // Try to extract individual functions using regex
         $pattern = '/\s*(public|private|protected|static)?\s*function\s+([a-zA-Z0-9_]+)\s*\([^{]*\)\s*(?::\s*[a-zA-Z0-9_\\\\]+)?\s*\{/i';
         preg_match_all($pattern, $content, $matches, PREG_OFFSET_CAPTURE);
         
         if (!empty($matches[0])) {
-            // Encontramos declaraciones de función
+            // We found function declarations
             $startPositions = array_column($matches[0], 1);
             $methodCount = count($startPositions);
             
@@ -599,10 +599,10 @@ class ClassModifyCommand extends Command
                 $startPos = $startPositions[$i];
                 $endPos = ($i < $methodCount - 1) ? $startPositions[$i + 1] : strlen($content);
                 
-                // Extraer esta porción del contenido
+                // Extract this portion of the content
                 $methodContent = substr($content, $startPos);
                 
-                // Encontrar el cierre de la función (contando llaves)
+                // Find the function closing (counting braces)
                 $bracesCount = 0;
                 $foundEnd = false;
                 $methodLength = 0;
@@ -626,7 +626,7 @@ class ClassModifyCommand extends Command
             }
         }
         
-        // Si no encontramos métodos con regex, tratar todo el contenido como un solo método
+        // If we didn't find methods with regex, treat the entire content as a single method
         if (empty($methods) && !empty($content)) {
             $methods[] = $content;
         }
@@ -635,7 +635,7 @@ class ClassModifyCommand extends Command
     }
     
     /**
-     * Parsea propiedades desde formato JSON
+     * Parses properties from JSON format
      */
     private function parsePropertiesJson(string $jsonContent, OutputInterface $output): array
     {
@@ -645,57 +645,57 @@ class ClassModifyCommand extends Command
             $data = json_decode($jsonContent, true, 512, JSON_THROW_ON_ERROR);
             
             if (!is_array($data)) {
-                $output->writeln("<comment>El JSON proporcionado no es un array válido</comment>");
+                $output->writeln("<comment>The provided JSON is not a valid array</comment>");
                 return [];
             }
             
-            // Si es un array asociativo con una sola propiedad, convertirlo a array de propiedades
+            // If it's an associative array with a single property, convert it to an array of properties
             if (isset($data['name']) && isset($data['value'])) {
                 $data = [$data];
             }
             
             foreach ($data as $property) {
                 if (isset($property['name'])) {
-                    // Asegurarse de que value esté definido, incluso si es null
+                    // Make sure value is defined, even if it's null
                     if (!isset($property['value'])) {
                         $property['value'] = null;
                     }
                     
-                    // Si el valor es un array JSON, convertirlo a array PHP
+                    // If the value is a JSON array, convert it to a PHP array
                     if (is_array($property['value'])) {
-                        // Ya es un array, no necesita conversión
+                        // Already an array, no conversion needed
                     } elseif (is_string($property['value']) && 
                              (str_starts_with(trim($property['value']), '[') || 
                               str_starts_with(trim($property['value']), '{'))) {
-                        // Intentar decodificar como JSON si parece un array o objeto JSON
+                        // Try to decode as JSON if it looks like a JSON array or object
                         try {
                             $property['value'] = json_decode($property['value'], true, 512, JSON_THROW_ON_ERROR);
                         } catch (\JsonException $e) {
-                            // Si falla, mantener el valor original
+                            // If it fails, keep the original value
                         }
                     }
                     
                     $properties[] = $property;
                 } else {
-                    $output->writeln("<comment>Propiedad inválida, debe tener 'name': " . json_encode($property) . "</comment>");
+                    $output->writeln("<comment>Invalid property, must have 'name': " . json_encode($property) . "</comment>");
                 }
             }
         } catch (\JsonException $e) {
-            $output->writeln("<comment>Error al parsear JSON: {$e->getMessage()}</comment>");
+            $output->writeln("<comment>Error parsing JSON: {$e->getMessage()}</comment>");
         }
         
         return $properties;
     }
     
     /**
-     * Limpia el código del método eliminando etiquetas PHP y espacios innecesarios
+     * Cleans the method code by removing PHP tags and unnecessary spaces
      */
     private function cleanMethodCode(string $code): string
     {
-        // Eliminar etiquetas PHP si existen
+        // Remove PHP tags if they exist
         $code = preg_replace('/<\?php|\?>/', '', $code);
         
-        // Eliminar líneas vacías al principio y al final
+        // Remove empty lines at the beginning and end
         $code = trim($code);
         
         return $code;

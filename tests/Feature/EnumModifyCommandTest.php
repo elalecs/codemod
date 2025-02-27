@@ -8,7 +8,7 @@ use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
 beforeEach(function() {
-    // Crear copia de trabajo del enum de prueba en directorio temporal
+    // Create a working copy of the test enum in a temporary directory
     $fixturesDir = __DIR__ . '/../Fixtures/';
     $this->testEnumPath = tempnam(sys_get_temp_dir(), 'test_enum_') . '.php';
     file_put_contents($this->testEnumPath, file_exists($fixturesDir . 'TestEnum.php')
@@ -20,11 +20,11 @@ enum TestEnum: string
     case CASE_TWO = "two";
 }');
     
-    // Crear un archivo para probar la opción de casos desde archivo
+    // Create a file to test the cases from file option
     $this->casesFilePath = tempnam(sys_get_temp_dir(), 'cases_file_') . '.txt';
     file_put_contents($this->casesFilePath, "CASE_FILE_A = 'value_a'\nCASE_FILE_B = 'value_b'");
     
-    // Crear archivos de stub para métodos
+    // Create stub files for methods
     $this->methodStub1Path = createTestStub('<?php
 public function getName(): string
 {
@@ -36,7 +36,7 @@ public function getName(): string
     return $this->value;
 }');
     
-    // Crear un archivo para probar la opción de métodos desde archivo
+    // Create a file to test the methods from file option
     $this->methodsFilePath = tempnam(sys_get_temp_dir(), 'methods_file_') . '.php';
     file_put_contents($this->methodsFilePath, "
 public function getLabel(): string
@@ -52,7 +52,7 @@ public function isDefault(): bool
 });
 
 afterEach(function() {
-    // Limpiar después del test
+    // Clean up after the test
     cleanupTestFiles([
         $this->testEnumPath,
         $this->casesFilePath,
@@ -63,7 +63,7 @@ afterEach(function() {
 });
 
 /**
- * Comprueba si un enum tiene un caso específico
+ * Checks if an enum has a specific case
  */
 function enumHasCase(string $enumClass, string $caseName): bool {
     if (!class_exists($enumClass)) {
@@ -79,7 +79,7 @@ function enumHasCase(string $enumClass, string $caseName): bool {
 }
 
 /**
- * Comprueba si una clase tiene un método específico
+ * Checks if a class has a specific method
  */
 function classHasMethod(string $className, string $methodName): bool {
     if (!class_exists($className)) {
@@ -90,42 +90,42 @@ function classHasMethod(string $className, string $methodName): bool {
 }
 
 /**
- * Carga el enum desde un archivo temporal
+ * Loads the enum from a temporary file
  */
 function loadTestEnum(string $filePath): string {
-    // Incluir el archivo generado para que PHP pueda encontrar la clase
-    // Usamos un nombre único para evitar colisiones con otras clases ya cargadas
+    // Include the generated file so PHP can find the class
+    // We use a unique name to avoid collisions with other already loaded classes
     $tempClassName = 'TestEnum_' . uniqid();
     
-    // Leer el contenido del archivo
+    // Read the file content
     $code = file_get_contents($filePath);
     
-    // Verificar si el enum tiene namespace definido
+    // Verify if the enum has namespace defined
     $namespacePattern = '/namespace\s+([^;]+);/';
     preg_match($namespacePattern, $code, $namespaceMatches);
     $namespace = $namespaceMatches[1] ?? null;
     
-    // Modificar el código para usar el nombre de clase temporal
+    // Modify the code to use the temporary class name
     $code = str_replace('TestEnum', $tempClassName, $code);
     
-    // Asegurarnos de que el código tenga el namespace correcto
+    // Ensure the code has the correct namespace
     if (!$namespace) {
         $code = preg_replace('/(<\?php)/', "$1\n\nnamespace Tests;", $code);
     }
     
-    // Crear un archivo temporal con el nuevo nombre de clase
+    // Create a temporary file with the new class name
     $tempFile = sys_get_temp_dir() . '/' . $tempClassName . '.php';
     file_put_contents($tempFile, $code);
     
-    // Cargar el archivo
+    // Load the file
     require_once $tempFile;
     
-    // Devolver el nombre completo de la clase
+    // Return the full class name
     return $namespace ? "$namespace\\$tempClassName" : "Tests\\$tempClassName";
 }
 
-// Pruebas para casos individuales
-test('Añade un caso simple a un enum', function() {
+// Tests for individual cases
+test('Adds a simple case to an enum', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -145,20 +145,20 @@ test('Añade un caso simple a un enum', function() {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar que el mensaje de éxito se muestra
-    expect($output)->toContain('Caso NEW_CASE agregado');
+    // Verify that the success message is displayed
+    expect($output)->toContain('Case NEW_CASE added');
     
-    // Cargar el enum modificado y verificar que el caso existe
+    // Load the modified enum and verify that the case exists
     $enumClassName = loadTestEnum($this->testEnumPath);
     expect(enumHasCase($enumClassName, 'NEW_CASE'))->toBeTrue();
     
-    // Verificar que el valor del caso es correcto
+    // Verify that the case value is correct
     $caseValue = constant("$enumClassName::NEW_CASE")->value;
     expect($caseValue)->toBe('new_value');
 });
 
-// Prueba para añadir múltiples casos en un solo comando
-test('Añade múltiples casos a un enum con la opción --cases', function() {
+// Test for adding multiple cases in a single command
+test('Adds multiple cases to an enum with the --cases option', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -177,23 +177,23 @@ test('Añade múltiples casos a un enum con la opción --cases', function() {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Caso MULTI_A agregado');
-    expect($output)->toContain('Caso MULTI_B agregado');
-    expect($output)->toContain('Total de casos agregados: 2');
+    // Verify success messages
+    expect($output)->toContain('Case MULTI_A added');
+    expect($output)->toContain('Case MULTI_B added');
+    expect($output)->toContain('Total of cases added: 2');
     
-    // Cargar el enum modificado y verificar que los casos existen
+    // Load the modified enum and verify that the cases exist
     $enumClassName = loadTestEnum($this->testEnumPath);
     expect(enumHasCase($enumClassName, 'MULTI_A'))->toBeTrue();
     expect(enumHasCase($enumClassName, 'MULTI_B'))->toBeTrue();
     
-    // Verificar que los valores de los casos son correctos
+    // Verify that the case values are correct
     expect(constant("$enumClassName::MULTI_A")->value)->toBe('value_a');
     expect(constant("$enumClassName::MULTI_B")->value)->toBe('value_b');
 });
 
-// Prueba para añadir casos desde un archivo
-test('Añade casos a un enum desde un archivo', function() {
+// Test for adding cases from a file
+test('Adds cases to an enum from a file', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -212,23 +212,23 @@ test('Añade casos a un enum desde un archivo', function() {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Caso CASE_FILE_A agregado');
-    expect($output)->toContain('Caso CASE_FILE_B agregado');
-    expect($output)->toContain('Total de casos agregados: 2');
+    // Verify success messages
+    expect($output)->toContain('Case CASE_FILE_A added');
+    expect($output)->toContain('Case CASE_FILE_B added');
+    expect($output)->toContain('Total of cases added: 2');
     
-    // Cargar el enum modificado y verificar que los casos existen
+    // Load the modified enum and verify that the cases exist
     $enumClassName = loadTestEnum($this->testEnumPath);
     expect(enumHasCase($enumClassName, 'CASE_FILE_A'))->toBeTrue();
     expect(enumHasCase($enumClassName, 'CASE_FILE_B'))->toBeTrue();
     
-    // Verificar que los valores de los casos son correctos
+    // Verify that the case values are correct
     expect(constant("$enumClassName::CASE_FILE_A")->value)->toBe('value_a');
     expect(constant("$enumClassName::CASE_FILE_B")->value)->toBe('value_b');
 });
 
-// Pruebas para métodos individuales
-test('Añade un método a un enum', function() {
+// Tests for individual methods
+test('Adds a method to an enum', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -249,21 +249,21 @@ test('Añade un método a un enum', function() {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar el mensaje de éxito
-    expect($output)->toContain('Método getDescription agregado');
-    expect($output)->toContain('Total de métodos agregados: 1');
+    // Verify success message
+    expect($output)->toContain('Method getDescription added');
+    expect($output)->toContain('Total of methods added: 1');
     
-    // Cargar el enum modificado y verificar que el método existe
+    // Load the modified enum and verify that the method exists
     $enumClassName = loadTestEnum($this->testEnumPath);
     expect(classHasMethod($enumClassName, 'getDescription'))->toBeTrue();
     
-    // Verificar que el método funciona correctamente
+    // Verify that the method works correctly
     $instance = constant("$enumClassName::CASE_ONE");
     expect($instance->getDescription())->toBe('Description for CASE_ONE');
 });
 
-// Prueba para añadir múltiples métodos
-test('Añade múltiples métodos a un enum con la opción --methods', function() {
+// Test for adding multiple methods
+test('Adds multiple methods to an enum with the --methods option', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -275,12 +275,12 @@ test('Añade múltiples métodos a un enum con la opción --methods', function()
     $commandTester = new CommandTester($command);
     
     $methodsContent = "
-    public function metodo1(): string {
-        return 'valor1';
+    public function method1(): string {
+        return 'value1';
     }
     
-    public function metodo2(int \$param): void {
-        // Solo para verificar que existe
+    public function method2(int \$param): void {
+        // Just to verify it exists
     }";
     
     $commandTester->execute([
@@ -291,23 +291,23 @@ test('Añade múltiples métodos a un enum con la opción --methods', function()
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Método metodo1 agregado');
-    expect($output)->toContain('Método metodo2 agregado');
-    expect($output)->toContain('Total de métodos agregados: 2');
+    // Verify success messages
+    expect($output)->toContain('Method method1 added');
+    expect($output)->toContain('Method method2 added');
+    expect($output)->toContain('Total of methods added: 2');
     
-    // Cargar el enum modificado y verificar que los métodos existen
+    // Load the modified enum and verify that the methods exist
     $enumClassName = loadTestEnum($this->testEnumPath);
-    expect(classHasMethod($enumClassName, 'metodo1'))->toBeTrue();
-    expect(classHasMethod($enumClassName, 'metodo2'))->toBeTrue();
+    expect(classHasMethod($enumClassName, 'method1'))->toBeTrue();
+    expect(classHasMethod($enumClassName, 'method2'))->toBeTrue();
     
-    // Verificar que el primer método funciona correctamente
+    // Verify that the first method works correctly
     $instance = constant("$enumClassName::CASE_ONE");
-    expect($instance->metodo1())->toBe('valor1');
+    expect($instance->method1())->toBe('value1');
 });
 
-// Prueba para añadir métodos desde un archivo
-test('Añade métodos a un enum desde un archivo', function() {
+// Test for adding methods from a file
+test('Adds methods to an enum from a file', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -326,17 +326,17 @@ test('Añade métodos a un enum desde un archivo', function() {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Método getLabel agregado');
-    expect($output)->toContain('Método isDefault agregado');
-    expect($output)->toContain('Total de métodos agregados: 2');
+    // Verify success messages
+    expect($output)->toContain('Method getLabel added');
+    expect($output)->toContain('Method isDefault added');
+    expect($output)->toContain('Total of methods added: 2');
     
-    // Cargar el enum modificado y verificar que los métodos existen
+    // Load the modified enum and verify that the methods exist
     $enumClassName = loadTestEnum($this->testEnumPath);
     expect(classHasMethod($enumClassName, 'getLabel'))->toBeTrue();
     expect(classHasMethod($enumClassName, 'isDefault'))->toBeTrue();
     
-    // Verificar que los métodos funcionan correctamente
+    // Verify that the methods work correctly
     $instance = constant("$enumClassName::CASE_ONE");
     expect($instance->getLabel())->toBe('case_one');
     expect($instance->isDefault())->toBeTrue();
@@ -345,8 +345,8 @@ test('Añade métodos a un enum desde un archivo', function() {
     expect($instance2->isDefault())->toBeFalse();
 });
 
-// Prueba para combinar adición de casos y métodos en una sola operación
-test('Añade casos y métodos en una sola operación', function() {
+// Test for combining case and method additions in a single operation
+test('Adds cases and methods in a single operation', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -366,32 +366,32 @@ test('Añade casos y métodos en una sola operación', function() {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito para casos
-    expect($output)->toContain('Caso COMBINED_A agregado');
-    expect($output)->toContain('Caso COMBINED_B agregado');
-    expect($output)->toContain('Total de casos agregados: 2');
+    // Verify success messages for cases
+    expect($output)->toContain('Case COMBINED_A added');
+    expect($output)->toContain('Case COMBINED_B added');
+    expect($output)->toContain('Total of cases added: 2');
     
-    // Verificar los mensajes de éxito para métodos
-    expect($output)->toContain('Método getCombinedName agregado');
-    expect($output)->toContain('Total de métodos agregados: 1');
+    // Verify success messages for methods
+    expect($output)->toContain('Method getCombinedName added');
+    expect($output)->toContain('Total of methods added: 1');
     
-    // Cargar el enum modificado y verificar
+    // Load the modified enum and verify
     $enumClassName = loadTestEnum($this->testEnumPath);
     
-    // Verificar casos
+    // Verify cases
     expect(enumHasCase($enumClassName, 'COMBINED_A'))->toBeTrue();
     expect(enumHasCase($enumClassName, 'COMBINED_B'))->toBeTrue();
     expect(constant("$enumClassName::COMBINED_A")->value)->toBe('value_a');
     expect(constant("$enumClassName::COMBINED_B")->value)->toBe('value_b');
     
-    // Verificar método
+    // Verify method
     expect(classHasMethod($enumClassName, 'getCombinedName'))->toBeTrue();
     $instance = constant("$enumClassName::COMBINED_A");
     expect($instance->getCombinedName())->toBe('COMBINED_COMBINED_A');
 });
 
-// Prueba para modo dry-run
-test('Modo dry-run muestra cambios sin aplicarlos', function() {
+// Test for dry-run mode
+test('Dry-run mode shows changes without applying them', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -402,7 +402,7 @@ test('Modo dry-run muestra cambios sin aplicarlos', function() {
     $command = $application->find('enum:modify');
     $commandTester = new CommandTester($command);
     
-    // Guardar contenido original para comparación
+    // Save original content for comparison
     $originalCode = file_get_contents($this->testEnumPath);
     
     $commandTester->execute([
@@ -416,24 +416,24 @@ test('Modo dry-run muestra cambios sin aplicarlos', function() {
     $commandTester->assertCommandIsSuccessful();
     $output = $commandTester->getDisplay();
     
-    // Verificar los mensajes de éxito
-    expect($output)->toContain('Modo dry-run: Mostrando cambios sin aplicarlos');
-    expect($output)->toContain('Caso DRY_RUN_CASE agregado');
-    expect($output)->toContain('Método dryRunMethod agregado');
-    expect($output)->toContain('[MODO DRY-RUN] Cambios NO aplicados');
+    // Verify success messages
+    expect($output)->toContain('Dry-run mode: Showing changes without applying them');
+    expect($output)->toContain('Case DRY_RUN_CASE added');
+    expect($output)->toContain('Method dryRunMethod added');
+    expect($output)->toContain('[DRY-RUN MODE] Changes NOT applied');
     
-    // Verificar que el código no se modificó
+    // Verify that the code was not modified
     $codeAfter = file_get_contents($this->testEnumPath);
     expect($codeAfter)->toBe($originalCode);
     
-    // Cargar el enum original y verificar que el caso y método no existen
+    // Load the original enum and verify that the case and method don't exist
     $enumClassName = loadTestEnum($this->testEnumPath);
     expect(enumHasCase($enumClassName, 'DRY_RUN_CASE'))->toBeFalse();
     expect(classHasMethod($enumClassName, 'dryRunMethod'))->toBeFalse();
 });
 
-// Prueba de validación: debe fallar si no se proporciona ninguna opción
-test('Falla si no se proporciona ninguna opción', function() {
+// Validation test: should fail if no option is provided
+test('Fails if no option is provided', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -448,13 +448,13 @@ test('Falla si no se proporciona ninguna opción', function() {
         'file' => $this->testEnumPath
     ]);
     
-    expect($commandTester->getStatusCode())->toBe(1); // Debe fallar (código 1)
+    expect($commandTester->getStatusCode())->toBe(1); // Should fail (code 1)
     $output = $commandTester->getDisplay();
-    expect($output)->toContain('Debe proporcionar al menos una opción');
+    expect($output)->toContain('You must provide at least one option');
 });
 
-// Prueba de validación: debe fallar si se proporciona --case sin --value
-test('Falla si se proporciona --case sin --value', function() {
+// Validation test: should fail if --case is provided without --value
+test('Fails if --case is provided without --value', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -470,7 +470,7 @@ test('Falla si se proporciona --case sin --value', function() {
         '--case' => 'INCOMPLETE_CASE'
     ]);
     
-    expect($commandTester->getStatusCode())->toBe(1); // Debe fallar (código 1)
+    expect($commandTester->getStatusCode())->toBe(1); // Should fail (code 1)
     $output = $commandTester->getDisplay();
-    expect($output)->toContain('Si se proporciona --case, también debe proporcionarse --value');
+    expect($output)->toContain('If --case is provided, --value must also be provided');
 }); 

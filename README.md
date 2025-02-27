@@ -1,126 +1,126 @@
 # CodeMod Tool 🛠️
 
-Herramienta para modificación automática de código PHP mediante AST (Abstract Syntax Tree)
+Tool for automatic PHP code modification using AST (Abstract Syntax Tree)
 
-## TLDR: Instalación Rápida y Uso Básico 🚀
+## TLDR: Quick Installation and Basic Usage 🚀
 
 ```bash
-# Instalar
-git clone https://github.com/tu-usuario/codemod.git
+# Install
+git clone https://github.com/your-username/codemod.git
 cd codemod
 composer install
 composer run build
 
-# Uso básico (modificar un enum)
+# Basic usage (modify an enum)
 ./codemod.phar enum:modify path/to/Enum.php --case=NEW_CASE --value=new_value
 
-# Uso básico (añadir un trait a una clase)
-./codemod.phar class:modify path/to/Class.php --trait=NombreDelTrait
+# Basic usage (add a trait to a class)
+./codemod.phar class:modify path/to/Class.php --trait=TraitName
 
-# Ver todos los comandos disponibles
+# View all available commands
 ./codemod.phar list
 ```
 
-## Propósito 🎯
+## Purpose 🎯
 
-Automatizar modificaciones comunes en código PHP durante migraciones o refactorizaciones:
-- Añadir casos a Enums
-- Agregar traits a clases
-- Modificar propiedades de clases
-- Actualizar arrays de configuración
-- Añadir métodos a clases
-- Añadir métodos a enums
+Automate common PHP code modifications during migrations or refactorings:
+- Add cases to Enums
+- Add traits to classes
+- Modify class properties
+- Update configuration arrays
+- Add methods to classes
+- Add methods to enums
 
-## Requisitos 📋
+## Requirements 📋
 
 - PHP 8.1+
 - Composer
-- Extensión PHAR
+- PHAR Extension
 
-## Características Implementadas ✅
+## Implemented Features ✅
 
-- Sistema básico de parsing de código
-- Soporte para modificación de Enums
-- Generación de PHAR ejecutable
-- Modificador de clases (traits/propiedades/métodos)
-- Modificador de enums (casos/métodos)
-- Sistema de backups automáticos
-- Soporte para operaciones en lote (batch)
-- Modo dry-run para pruebas sin aplicar cambios reales
+- Basic code parsing system
+- Support for Enum modification
+- Executable PHAR generation
+- Class modifier (traits/properties/methods)
+- Enum modifier (cases/methods)
+- Automatic backup system
+- Support for batch operations
+- Dry-run mode for testing without applying real changes
 
-## Guía de Comandos
+## Command Guide
 
-### Opciones Globales
+### Global Options
 
-Todos los comandos aceptan estas opciones:
+All commands accept these options:
 
-- `--dry-run`: Muestra los cambios sin aplicarlos
-- `-v`, `-vv`, `-vvv`: Diferentes niveles de verbosidad
+- `--dry-run`: Shows changes without applying them
+- `-v`, `-vv`, `-vvv`: Different verbosity levels
 
-### Comandos para Enums
+### Enum Commands
 
-#### Comando unificado `enum:modify`
+#### Unified command `enum:modify`
 
-El comando `enum:modify` permite realizar múltiples operaciones sobre un enum en una sola ejecución: añadir casos individuales, múltiples casos, métodos individuales o múltiples métodos.
+The `enum:modify` command allows multiple operations on an enum in a single execution: add individual cases, multiple cases, individual methods, or multiple methods.
 
 ```bash
-# Ejemplo básico: añadir un caso simple
+# Basic example: add a simple case
 ./codemod.phar enum:modify path/to/Enum.php --case=NEW_CASE --value=new_value
 
-# Añadir múltiples casos
+# Add multiple cases
 ./codemod.phar enum:modify path/to/Enum.php --cases="CASE1=value1,CASE2=value2"
 
-# Añadir casos desde un archivo
+# Add cases from a file
 ./codemod.phar enum:modify path/to/Enum.php --cases-file=path/to/cases.txt
 
-# Añadir un método
-./codemod.phar enum:modify path/to/Enum.php --method="public function nuevoMetodo() { return true; }"
+# Add a method
+./codemod.phar enum:modify path/to/Enum.php --method="public function newMethod() { return true; }"
 
-# Añadir múltiples métodos usando heredoc
-./codemod.phar enum:modify path/to/Enum.php --methods=$(cat << 'METODOS'
-  public function metodo1(): string {
-    return 'valor1';
+# Add multiple methods using heredoc
+./codemod.phar enum:modify path/to/Enum.php --methods=$(cat << 'METHODS'
+  public function method1(): string {
+    return 'value1';
   }
   
-  public function metodo2(int \$param): void {
+  public function method2(int \$param): void {
     echo \$param;
   }
-METODOS
+METHODS
 )
 
-# Añadir métodos desde un archivo
+# Add methods from a file
 ./codemod.phar enum:modify path/to/Enum.php --methods-file=path/to/methods.php
 
-# Combinar operaciones: añadir casos y métodos en una sola ejecución
+# Combine operations: add cases and methods in a single execution
 ./codemod.phar enum:modify path/to/Enum.php --cases="CASE1=value1,CASE2=value2" --method="public function getLabel(): string { return strtolower(\$this->name); }"
 ```
 
-#### Formatos de entrada
+#### Input Formats
 
-**Casos:**
-- Caso individual: `--case=NOMBRE --value=valor`
-- Múltiples casos: `--cases="CASO1=valor1,CASO2=valor2"`
-- Desde archivo: `--cases-file=path/to/file.txt` (formato: una línea por caso, `CASO=valor`)
+**Cases:**
+- Individual case: `--case=NAME --value=value`
+- Multiple cases: `--cases="CASE1=value1,CASE2=value2"`
+- From file: `--cases-file=path/to/file.txt` (format: one line per case, `CASE=value`)
 
-**Métodos:**
-- Método individual: `--method="public function nombre() { ... }"`
-- Múltiples métodos: `--methods="public function nombre1() { ... } public function nombre2() { ... }"`
-- Desde archivo: `--methods-file=path/to/methods.php` (contiene definiciones de métodos)
+**Methods:**
+- Individual method: `--method="public function name() { ... }"`
+- Multiple methods: `--methods="public function name1() { ... } public function name2() { ... }"`
+- From file: `--methods-file=path/to/methods.php` (contains method definitions)
 
-### Comandos para Clases
+### Class Commands
 
-#### Comando unificado `class:modify`
+#### Unified command `class:modify`
 
-El comando `class:modify` permite realizar múltiples operaciones sobre una clase en una sola ejecución: añadir traits, propiedades, métodos, modificar propiedades existentes y añadir elementos a arrays.
+The `class:modify` command allows multiple operations on a class in a single execution: add traits, properties, methods, modify existing properties, and add elements to arrays.
 
 ```bash
-# Ejemplo básico: añadir un trait
-./codemod.phar class:modify path/to/Class.php --trait=NombreDelTrait
+# Basic example: add a trait
+./codemod.phar class:modify path/to/Class.php --trait=TraitName
 
-# Añadir múltiples traits en una sola operación
+# Add multiple traits in a single operation
 ./codemod.phar class:modify path/to/Class.php --traits="Trait1,Trait2,Trait3"
 
-# Añadir múltiples traits con namespaces completos usando heredoc
+# Add multiple traits with full namespaces using heredoc
 ./codemod.phar class:modify path/to/Class.php --traits=$(cat << 'TRAITS'
 App\Traits\HasUuid,
 App\Traits\HasTimestamps,
@@ -129,16 +129,16 @@ Illuminate\Database\Eloquent\SoftDeletes
 TRAITS
 )
 
-# Añadir traits desde un archivo
+# Add traits from a file
 ./codemod.phar class:modify path/to/Class.php --traits-file=path/to/traits.txt
 
-# Añadir una propiedad (formato: nombre:tipo=valor)
-./codemod.phar class:modify path/to/Class.php --property="propiedad:string=valor"
+# Add a property (format: name:type=value)
+./codemod.phar class:modify path/to/Class.php --property="property:string=value"
 
-# Añadir una propiedad sin tipo
-./codemod.phar class:modify path/to/Class.php --property="propiedad=valor"
+# Add a property without type
+./codemod.phar class:modify path/to/Class.php --property="property=value"
 
-# Añadir múltiples propiedades en formato JSON
+# Add multiple properties in JSON format
 ./codemod.phar class:modify path/to/Class.php --properties=$(cat << 'PROPERTIES'
 [
   {"name":"apiKey","value":"null","visibility":"protected","type":"string"},
@@ -147,144 +147,144 @@ TRAITS
 PROPERTIES
 )
 
-# Añadir propiedades desde un archivo
+# Add properties from a file
 ./codemod.phar class:modify path/to/Class.php --properties-file=path/to/properties.json
 
-# Modificar una propiedad existente
-./codemod.phar class:modify path/to/Class.php --modify-property="propToModify" --new-value="nuevo valor" --new-type="string" --new-visibility="protected"
+# Modify an existing property
+./codemod.phar class:modify path/to/Class.php --modify-property="propToModify" --new-value="new value" --new-type="string" --new-visibility="protected"
 
-# Añadir elementos a un array
-./codemod.phar class:modify path/to/Class.php --add-to-array="nombreArray" --key="clave" --array-value="valor" --string
+# Add elements to an array
+./codemod.phar class:modify path/to/Class.php --add-to-array="arrayName" --key="key" --array-value="value" --string
 
-# Añadir un método directamente
-./codemod.phar class:modify path/to/Class.php --method="public function nuevoMetodo() { return true; }"
+# Add a method directly
+./codemod.phar class:modify path/to/Class.php --method="public function newMethod() { return true; }"
 
-# Añadir múltiples métodos con heredoc
-./codemod.phar class:modify path/to/Class.php --methods=$(cat << 'METODOS'
-  public function metodo1(): string {
-    return 'valor1';
+# Add multiple methods with heredoc
+./codemod.phar class:modify path/to/Class.php --methods=$(cat << 'METHODS'
+  public function method1(): string {
+    return 'value1';
   }
   
-  public function metodo2(int \$param): void {
+  public function method2(int \$param): void {
     echo \$param;
   }
-METODOS
+METHODS
 )
 
-# Añadir métodos desde un archivo
+# Add methods from a file
 ./codemod.phar class:modify path/to/Class.php --methods-file=path/to/methods.php
 
-# Añadir métodos desde un directorio (cada archivo contiene un método)
+# Add methods from a directory (each file contains a method)
 ./codemod.phar class:modify path/to/Class.php --methods-dir=path/to/methods_directory
 
-# Combinar operaciones: añadir traits, propiedades y métodos en una sola ejecución
+# Combine operations: add traits, properties, and methods in a single execution
 ./codemod.phar class:modify path/to/Class.php --traits="HasUuid,SoftDeletes" --property="status:string=active" --method="public function getStatus() { return \$this->status; }"
 ```
 
-#### Formatos de entrada
+#### Input Formats
 
 **Traits:**
-- Trait individual: `--trait=NombreDelTrait`
-- Múltiples traits: `--traits="Trait1,Trait2,Trait3"`
-- Desde archivo: `--traits-file=path/to/traits.txt` (formato: un trait por línea)
+- Individual trait: `--trait=TraitName`
+- Multiple traits: `--traits="Trait1,Trait2,Trait3"`
+- From file: `--traits-file=path/to/traits.txt` (format: one trait per line)
 
-**Propiedades:**
-- Propiedad individual: `--property="nombre:tipo=valor"` o `--property="nombre=valor"` (sin tipo)
-- Múltiples propiedades: `--properties='[{"name":"prop1",...},{"name":"prop2",...}]'` (formato JSON)
-- Desde archivo: `--properties-file=path/to/properties.json`
+**Properties:**
+- Individual property: `--property="name:type=value"` or `--property="name=value"` (without type)
+- Multiple properties: `--properties='[{"name":"prop1",...},{"name":"prop2",...}]'` (JSON format)
+- From file: `--properties-file=path/to/properties.json`
 
-**Modificación de propiedades:**
-- `--modify-property="nombrePropiedad" --new-value="nuevo valor" --new-type="string" --new-visibility="protected"`
+**Property Modification:**
+- `--modify-property="propertyName" --new-value="new value" --new-type="string" --new-visibility="protected"`
 
-**Añadir a arrays:**
-- `--add-to-array="nombreArray" --key="clave" --array-value="valor" --string`
+**Add to Arrays:**
+- `--add-to-array="arrayName" --key="key" --array-value="value" --string`
 
-**Métodos:**
-- Método individual: `--method="public function nombre() { ... }"`
-- Múltiples métodos: `--methods="public function nombre1() { ... } public function nombre2() { ... }"`
-- Desde archivo: `--methods-file=path/to/methods.php`
-- Desde directorio: `--methods-dir=path/to/methods_directory`
+**Methods:**
+- Individual method: `--method="public function name() { ... }"`
+- Multiple methods: `--methods="public function name1() { ... } public function name2() { ... }"`
+- From file: `--methods-file=path/to/methods.php`
+- From directory: `--methods-dir=path/to/methods_directory`
 
 
-### Modo Dry-Run (Simulación)
+### Dry-Run Mode (Simulation)
 
-La opción `--dry-run` es una característica fundamental para probar cambios de forma segura:
+The `--dry-run` option is a fundamental feature for safely testing changes:
 
-- **¿Qué hace?** Muestra exactamente qué cambios se realizarían, pero sin modificar realmente los archivos
-- **¿Por qué usarlo?** Previene errores, permite validar cambios antes de aplicarlos
-- **¿Cómo funciona?** Ejecuta todo el proceso normal, pero detiene la escritura final al archivo
+- **What does it do?** Shows exactly what changes would be made, but without actually modifying the files
+- **Why use it?** Prevents errors, allows validating changes before applying them
+- **How does it work?** Runs the entire normal process, but stops the final write to the file
 
-#### Ejemplos de Uso de Dry-Run
+#### Examples of Dry-Run Usage
 
 ```bash
-# Simular la adición de un caso a un enum
+# Simulate adding a case to an enum
 ./codemod.phar enum:modify path/to/Enum.php --case=NEW_CASE --value=new_value --dry-run
 
-# Probar la adición de un método a una clase
+# Test adding a method to a class
 ./codemod.phar class:modify path/to/Class.php --method="public function test() {}" --dry-run
 
-# Verificar cómo quedarían múltiples propiedades antes de aplicar cambios
+# Verify how multiple properties would look before applying changes
 ./codemod.phar class:modify path/to/Class.php --properties-file=props.json --dry-run
 
-# Simular la adición de traits a varias clases
+# Simulate adding traits to multiple classes
 ./codemod.phar class:modify "app/Models/*.php" --traits="SoftDeletes,HasUuid" --dry-run
 ```
 
-#### Salida del Modo Dry-Run
+#### Dry-Run Mode Output
 
-Cuando se ejecuta con `--dry-run`, verás:
+When running with `--dry-run`, you'll see:
 
-- Texto en color verde: Líneas que se añadirían
-- Texto en color rojo: Líneas que se eliminarían
-- Resumen de cambios que se aplicarían
-- Mensaje "[MODO DRY-RUN] Cambios NO aplicados"
+- Text in green: Lines that would be added
+- Text in red: Lines that would be removed
+- Summary of changes that would be applied
+- Message "[DRY-RUN MODE] Changes NOT applied"
 
-Este modo es especialmente útil cuando se trabaja con:
-- Múltiples archivos a la vez
-- Comandos batch que afectan muchos elementos
-- Modificaciones complejas que requieren validación previa
+This mode is especially useful when working with:
+- Multiple files at once
+- Batch commands that affect many elements
+- Complex modifications that require prior validation
 
-## Arquitectura 🏗️
+## Architecture 🏗️
 ```
 src/
-├── Parser/          # Analizador de código AST
-├── Modifiers/       # Modificadores de código
-├── FileHandler.php  # Manejo de archivos
-├── CLI.php          # Punto de entrada CLI
-└── Commands/        # Comandos disponibles
+├── Parser/          # AST code analyzer
+├── Modifiers/       # Code modifiers
+├── FileHandler.php  # File handling
+├── CLI.php          # CLI entry point
+└── Commands/        # Available commands
 tests/
-├── Feature/         # Pruebas de funcionalidad
-└── Pest.php         # Configuración de PEST
+├── Feature/         # Functionality tests
+└── Pest.php         # PEST configuration
 ```
 
-## Desarrollo y Contribución 🤝
+## Development and Contribution 🤝
 
-### Comandos Útiles
+### Useful Commands
 
 ```bash
-# Construir PHAR
+# Build PHAR
 composer run build
 
-# Debuggear comandos
+# Debug commands
 ./codemod.phar -vvv list
 
-# Inspeccionar PHAR
+# Inspect PHAR
 php codemod.phar --info
 
-# Ejecutar pruebas
+# Run tests
 php vendor/bin/pest
 ```
 
-### Contribuir al Proyecto
+### Contributing to the Project
 
-1. Clonar repositorio
+1. Clone repository
 2. `composer install`
-3. Hacer cambios en `src/`
-4. Probar con `composer test`
+3. Make changes in `src/`
+4. Test with `composer test`
 5. Rebuild PHAR: `composer run build`
 
-> **Importante**: Siempre verificar backups (.bak) después de cada modificación
+> **Important**: Always verify backups (.bak) after each modification
 
-## Licencia
+## License
 
-Este proyecto está licenciado bajo la Licencia MIT.
+This project is licensed under the MIT License.

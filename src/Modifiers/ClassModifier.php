@@ -33,16 +33,16 @@ class ClassModifier
     }
     
     /**
-     * Añade un trait a una clase
+     * Adds a trait to a class
      */
     public function addTrait(Class_ $class, string $trait): bool
     {
-        // Verificar si el trait ya está incluido
+        // Check if the trait is already included
         foreach ($class->stmts as $stmt) {
             if ($stmt instanceof TraitUse) {
                 foreach ($stmt->traits as $existingTrait) {
                     if ($existingTrait->toString() === $trait) {
-                        return false; // El trait ya existe, no hacer nada
+                        return false; // The trait already exists, do nothing
                     }
                 }
             }
@@ -53,22 +53,22 @@ class ClassModifier
     }
     
     /**
-     * Añade una propiedad a una clase si no existe
+     * Adds a property to a class if it doesn't exist
      */
     public function addProperty(Class_ $class, string $name, $defaultValue = null, int $visibility = Class_::MODIFIER_PRIVATE, ?string $type = null): void
     {
-        // Verificar si la propiedad ya existe
+        // Check if the property already exists
         foreach ($class->stmts as $stmt) {
             if ($stmt instanceof Property) {
                 foreach ($stmt->props as $prop) {
                     if ($prop->name->toString() === $name) {
-                        return; // La propiedad ya existe, no hacer nada
+                        return; // The property already exists, do nothing
                     }
                 }
             }
         }
         
-        // Crear la nueva propiedad
+        // Create the new property
         $prop = new PropertyProperty(
             new Identifier($name),
             $this->createValueNode($defaultValue)
@@ -79,7 +79,7 @@ class ClassModifier
             [$prop]
         );
         
-        // Añadir tipo si se especificó
+        // Add type if specified
         if ($type !== null) {
             $property->type = new Identifier($type);
         }
@@ -88,7 +88,7 @@ class ClassModifier
     }
     
     /**
-     * Modifica una propiedad existente
+     * Modifies an existing property
      */
     public function modifyProperty(Class_ $class, string $name, $newValue = null, ?string $type = null, ?int $visibility = null): bool
     {
@@ -96,24 +96,24 @@ class ClassModifier
             if ($stmt instanceof Property) {
                 foreach ($stmt->props as $prop) {
                     if ($prop->name->toString() === $name) {
-                        // Actualizar el valor si se proporcionó
+                        // Update the value if provided
                         if ($newValue !== null) {
                             $prop->default = $this->createValueNode($newValue);
                         }
                         
-                        // Actualizar el tipo si se especificó
+                        // Update the type if specified
                         if ($type !== null) {
                             $stmt->type = new Identifier($type);
                         }
                         
-                        // Actualizar la visibilidad si se especificó
+                        // Update the visibility if specified
                         if ($visibility !== null) {
-                            // Primero eliminamos los flags de visibilidad existentes
+                            // First remove existing visibility flags
                             $stmt->flags &= ~Class_::MODIFIER_PUBLIC;
                             $stmt->flags &= ~Class_::MODIFIER_PROTECTED;
                             $stmt->flags &= ~Class_::MODIFIER_PRIVATE;
                             
-                            // Luego añadimos la nueva visibilidad
+                            // Then add the new visibility
                             $stmt->flags |= $visibility;
                         }
                         
@@ -123,11 +123,11 @@ class ClassModifier
             }
         }
         
-        return false; // Propiedad no encontrada
+        return false; // Property not found
     }
     
     /**
-     * Añade elementos a una propiedad de tipo array
+     * Adds elements to an array property
      */
     public function addToArrayProperty(Class_ $class, string $propertyName, $key, $value): bool
     {
@@ -135,23 +135,23 @@ class ClassModifier
             if ($stmt instanceof Property) {
                 foreach ($stmt->props as $prop) {
                     if ($prop->name->toString() === $propertyName) {
-                        // Verificar si la propiedad es un array
+                        // Check if the property is an array
                         if (!$prop->default instanceof Array_) {
-                            // Si no es un array, convertirlo en uno
+                            // If it's not an array, convert it to one
                             if ($prop->default === null) {
                                 $prop->default = new Array_([]);
                             } else {
-                                return false; // No es un array y ya tiene un valor
+                                return false; // It's not an array and already has a value
                             }
                         }
                         
-                        // Crear un nuevo ArrayItem y añadirlo al array
+                        // Create a new ArrayItem and add it to the array
                         $arrayItem = new ArrayItem(
                             $this->createValueNode($value),
                             $key !== null ? $this->createValueNode($key) : null
                         );
                         
-                        // En PHP-Parser, los elementos del array se almacenan en la propiedad 'items'
+                        // In PHP-Parser, array elements are stored in the 'items' property
                         $prop->default = new Array_(
                             array_merge(
                                 $prop->default->items ?? [], 
@@ -165,33 +165,33 @@ class ClassModifier
             }
         }
         
-        return false; // Propiedad no encontrada
+        return false; // Property not found
     }
     
     /**
-     * Añade un método a una clase desde un stub
+     * Adds a method to a class from a stub
      */
     public function addMethod(Class_ $class, string $methodStub): bool
     {
         try {
-            // Limpiar el código del método
+            // Clean the method code
             $methodStub = trim($methodStub);
             
-            // Extraer el nombre del método usando regex
+            // Extract the method name using regex
             if (!preg_match('/function\s+([a-zA-Z0-9_]+)/i', $methodStub, $matches)) {
-                return false; // No se pudo extraer el nombre del método
+                return false; // Could not extract the method name
             }
             
             $methodName = $matches[1];
             
-            // Verificar si el método ya existe en la clase
+            // Check if the method already exists in the class
             foreach ($class->stmts as $stmt) {
                 if ($stmt instanceof ClassMethod && $stmt->name->toString() === $methodName) {
-                    return false; // El método ya existe
+                    return false; // The method already exists
                 }
             }
             
-            // Preparar el código para parsear
+            // Prepare the code for parsing
             if (!str_starts_with($methodStub, '<?php')) {
                 $tempCode = "<?php\nclass TempClass {\n    $methodStub\n}";
             } else {
@@ -199,19 +199,19 @@ class ClassModifier
                 $tempCode = "<?php\nclass TempClass {\n    $methodStub\n}";
             }
             
-            // Parsear el código
+            // Parse the code
             $ast = $this->parser->parse($tempCode);
             
             if (!$ast) {
                 return false;
             }
             
-            // Enfoque simplificado: buscar directamente en el AST
+            // Simplified approach: search directly in the AST
             foreach ($ast as $node) {
                 if ($node instanceof Class_) {
                     foreach ($node->stmts as $stmt) {
                         if ($stmt instanceof ClassMethod && $stmt->name->toString() === $methodName) {
-                            // Añadir el método a la clase
+                            // Add the method to the class
                             $class->stmts[] = $stmt;
                             return true;
                         }
@@ -219,17 +219,17 @@ class ClassModifier
                 }
             }
             
-            // Si no se encontró el método, intentamos crear uno básico
+            // If the method was not found, we try to create a basic one
             $methodNode = new ClassMethod(
                 new Identifier($methodName),
                 [
                     'stmts' => [
-                        new Return_(new String_('Método generado'))
+                        new Return_(new String_('Generated method'))
                     ]
                 ]
             );
             
-            // Establecer la visibilidad (por defecto pública)
+            // Set the visibility (public by default)
             if (preg_match('/\b(public|private|protected)\b/i', $methodStub, $visMatches)) {
                 $visibility = strtolower($visMatches[1]);
                 if ($visibility === 'private') {
@@ -243,7 +243,7 @@ class ClassModifier
                 $methodNode->flags = Class_::MODIFIER_PUBLIC;
             }
             
-            // Añadir el método a la clase
+            // Add the method to the class
             $class->stmts[] = $methodNode;
             return true;
             
@@ -253,20 +253,20 @@ class ClassModifier
     }
     
     /**
-     * Crea un nodo de valor basado en el tipo de PHP
+     * Creates a value node based on the PHP type
      */
     private function createValueNode($value)
     {
         if ($value === null) {
             return null;
         } elseif (is_string($value)) {
-            // Verificar si el valor ya está entre comillas
+            // Check if the value is already in quotes
             if ((str_starts_with($value, "'") && str_ends_with($value, "'")) ||
                 (str_starts_with($value, '"') && str_ends_with($value, '"'))) {
-                // Si ya está entre comillas, usarlo como está
+                // If it's already in quotes, use it as is
                 return new String_(trim($value, "'\""));
             } else {
-                // Si no está entre comillas, añadirlas
+                // If it's not in quotes, add them
                 return new String_($value);
             }
         } elseif (is_int($value)) {
@@ -284,7 +284,7 @@ class ClassModifier
             return new Array_($items);
         }
         
-        // Valor por defecto
+        // Default value
         return null;
     }
 }

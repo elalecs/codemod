@@ -27,17 +27,17 @@ class EnumModifier
     }
     
     /**
-     * Añade un método a un enum desde un stub o código
+     * Adds a method to an enum from a stub or code
      */
     public function addMethod(Enum_ $enum, string $methodStub): bool
     {
         try {
-            // Verificar si el stub comienza con <?php y añadirlo si no está presente
+            // Check if the stub starts with <?php and add it if not present
             if (!str_starts_with(trim($methodStub), '<?php')) {
-                // Crear un enum temporal con el método
+                // Create a temporary enum with the method
                 $tempCode = "<?php\nenum TempEnum {\ncase TEST = 'test';\n    $methodStub\n}";
             } else {
-                // Si ya tiene la etiqueta PHP, eliminarla y crear el enum temporal
+                // If it already has the PHP tag, remove it and create the temporary enum
                 $methodStub = preg_replace('/^\s*<\?php\s*/i', '', $methodStub);
                 $tempCode = "<?php\nenum TempEnum {\ncase TEST = 'test';\n    $methodStub\n}";
             }
@@ -48,10 +48,10 @@ class EnumModifier
                 return false;
             }
             
-            // Buscar el método en el enum temporal
+            // Search for the method in the temporary enum
             $methodNode = null;
             
-            // Recorrer el AST para encontrar el enum y el método
+            // Traverse the AST to find the enum and the method
             foreach ($ast as $node) {
                 if ($node instanceof Enum_) {
                     foreach ($node->stmts as $stmt) {
@@ -67,15 +67,15 @@ class EnumModifier
                 return false;
             }
             
-            // Verificar si el método ya existe en el enum destino
+            // Check if the method already exists in the target enum
             $methodName = $methodNode->name->toString();
             foreach ($enum->stmts as $stmt) {
                 if ($stmt instanceof ClassMethod && $stmt->name->toString() === $methodName) {
-                    return false; // El método ya existe
+                    return false; // The method already exists
                 }
             }
             
-            // Añadir el método al enum
+            // Add the method to the enum
             $enum->stmts[] = $methodNode;
             return true;
             

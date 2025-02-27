@@ -5,6 +5,6 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use CodeModTool\CLI;
 
-// Iniciar la aplicación CLI
+// Start the CLI application
 $app = new CLI();
 $app->run();
