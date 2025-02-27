@@ -4,11 +4,15 @@ namespace CodeModTool;
 
 use Symfony\Component\Console\Application;
 use CodeModTool\Commands\ModifyEnumCommand;
+use CodeModTool\Commands\BatchModifyEnumCommand;
 use CodeModTool\Commands\AddTraitCommand;
+use CodeModTool\Commands\BatchAddTraitsCommand;
 use CodeModTool\Commands\AddPropertyCommand;
+use CodeModTool\Commands\BatchAddPropertiesCommand;
 use CodeModTool\Commands\ModifyPropertyCommand;
 use CodeModTool\Commands\AddToArrayCommand;
 use CodeModTool\Commands\AddMethodCommand;
+use CodeModTool\Commands\BatchAddMethodsCommand;
 use CodeModTool\Parser\CodeParser;
 use CodeModTool\Modifiers\EnumModifier;
 use CodeModTool\Modifiers\ClassModifier;
@@ -23,8 +27,14 @@ class CLI
         $parser = new CodeParser();
         $fileHandler = new FileHandler();
         
-        // Registrar comandos
+        // Registrar comandos para enums
         $application->add(new ModifyEnumCommand(
+            $parser,
+            $fileHandler,
+            new EnumModifier()
+        ));
+        
+        $application->add(new BatchModifyEnumCommand(
             $parser,
             $fileHandler,
             new EnumModifier()
@@ -39,7 +49,19 @@ class CLI
             $classModifier
         ));
         
+        $application->add(new BatchAddTraitsCommand(
+            $parser,
+            $fileHandler,
+            $classModifier
+        ));
+        
         $application->add(new AddPropertyCommand(
+            $parser,
+            $fileHandler,
+            $classModifier
+        ));
+        
+        $application->add(new BatchAddPropertiesCommand(
             $parser,
             $fileHandler,
             $classModifier
@@ -58,6 +80,12 @@ class CLI
         ));
         
         $application->add(new AddMethodCommand(
+            $parser,
+            $fileHandler,
+            $classModifier
+        ));
+        
+        $application->add(new BatchAddMethodsCommand(
             $parser,
             $fileHandler,
             $classModifier

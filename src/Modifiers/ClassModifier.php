@@ -31,20 +31,21 @@ class ClassModifier
     /**
      * Añade un trait a una clase
      */
-    public function addTrait(Class_ $class, string $trait): void
+    public function addTrait(Class_ $class, string $trait): bool
     {
         // Verificar si el trait ya está incluido
         foreach ($class->stmts as $stmt) {
             if ($stmt instanceof TraitUse) {
                 foreach ($stmt->traits as $existingTrait) {
                     if ($existingTrait->toString() === $trait) {
-                        return; // El trait ya existe, no hacer nada
+                        return false; // El trait ya existe, no hacer nada
                     }
                 }
             }
         }
         
         $class->stmts[] = new TraitUse([new Name($trait)]);
+        return true;
     }
     
     /**
