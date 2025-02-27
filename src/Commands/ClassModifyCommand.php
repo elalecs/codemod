@@ -6,6 +6,7 @@ use CodeModTool\FileHandler;
 use CodeModTool\Modifiers\ClassModifier;
 use CodeModTool\Parser\CodeParser;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\Namespace_;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -131,6 +132,14 @@ class ClassModifyCommand extends Command
                 if ($node instanceof Class_) {
                     $class = $node;
                     break;
+                } elseif ($node instanceof Namespace_) {
+                    // Buscar la clase dentro del namespace
+                    foreach ($node->stmts as $stmt) {
+                        if ($stmt instanceof Class_) {
+                            $class = $stmt;
+                            break 2;
+                        }
+                    }
                 }
             }
             
@@ -150,6 +159,14 @@ class ClassModifyCommand extends Command
                 if ($node instanceof Class_) {
                     $classCopy = $node;
                     break;
+                } elseif ($node instanceof Namespace_) {
+                    // Buscar la clase dentro del namespace en la copia
+                    foreach ($node->stmts as $stmt) {
+                        if ($stmt instanceof Class_) {
+                            $classCopy = $stmt;
+                            break 2;
+                        }
+                    }
                 }
             }
             
@@ -202,29 +219,17 @@ class ClassModifyCommand extends Command
             
             // Process properties and arrays
             if ($propertyDefinition) {
-                // Format: name:type=value
-                if (str_contains($propertyDefinition, '=')) {
-                    list($nameWithType, $valueString) = explode('=', $propertyDefinition, 2);
-                    
-                    // Extract type if present
-                    if (str_contains($nameWithType, ':')) {
-                        list($name, $type) = explode(':', $nameWithType, 2);
-                    } else {
-                        $name = $nameWithType;
-                        $type = null;
+                // Si es un array, procesamos cada elemento
+                if (is_array($propertyDefinition)) {
+                    foreach ($propertyDefinition as $propDef) {
+                        $this->processPropertyDefinition($classCopy, $propDef, $output);
+                        $propertiesAdded++;
                     }
-                    
-                    // Convert value according to type
-                    $value = $this->convertValue($valueString, $type);
-                    
-                    // Default to private visibility
-                    $visibility = Class_::MODIFIER_PRIVATE;
-                    
-                    $this->modifier->addProperty($classCopy, $name, $value, $visibility, $type);
-                    $output->writeln("<info>Property $name added</info>");
-                    $propertiesAdded++;
                 } else {
-                    $output->writeln("<e>Invalid property format. Use 'name:type=value'</e>");
+                    // Es una cadena, procesamos normalmente
+                    if ($this->processPropertyDefinition($classCopy, $propertyDefinition, $output)) {
+                        $propertiesAdded++;
+                    }
                 }
             }
             
@@ -699,5 +704,49 @@ class ClassModifyCommand extends Command
         $code = trim($code);
         
         return $code;
+    }
+
+    /**
+     * Procesa una definición de propiedad y la añade a la clase
+     */
+    private function processPropertyDefinition($classCopy, string $propertyDefinition, OutputInterface $output): bool
+    {
+        // Format: name:type=value o name:type
+        if (str_contains($propertyDefinition, '=')) {
+            // Caso con valor: name:type=value
+            list($nameWithType, $valueString) = explode('=', $propertyDefinition, 2);
+            
+            // Extract type if present
+            if (str_contains($nameWithType, ':')) {
+                list($name, $type) = explode(':', $nameWithType, 2);
+            } else {
+                $name = $nameWithType;
+                $type = null;
+            }
+            
+            // Convert value according to type
+            $value = $this->convertValue($valueString, $type);
+            
+            // Default to private visibility
+            $visibility = Class_::MODIFIER_PRIVATE;
+            
+            $this->modifier->addProperty($classCopy, $name, $value, $visibility, $type);
+            $output->writeln("<info>Property $name added</info>");
+            return true;
+        } elseif (str_contains($propertyDefinition, ':')) {
+            // Caso sin valor: name:type
+            list($name, $type) = explode(':', $propertyDefinition, 2);
+            
+            // Default to private visibility and null value
+            $visibility = Class_::MODIFIER_PRIVATE;
+            $value = null;
+            
+            $this->modifier->addProperty($classCopy, $name, $value, $visibility, $type);
+            $output->writeln("<info>Property $name added with type $type</info>");
+            return true;
+        } else {
+            $output->writeln("<e>Invalid property format. Use 'name:type=value' or 'name:type'</e>");
+            return false;
+        }
     }
 } 

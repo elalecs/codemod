@@ -50,3 +50,5 @@ php_errors.log
 /tmp/
 *.cache
 *.tmp
+/tests/Fixtures/demo/
+*.bak

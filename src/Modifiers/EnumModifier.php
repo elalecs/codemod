@@ -18,12 +18,23 @@ class EnumModifier
         $this->parser = (new ParserFactory)->create(ParserFactory::PREFER_PHP7);
     }
     
-    public function addCase(Enum_ $enum, string $name, string $value): void
+    public function addCase(Enum_ $enum, string $name, ?string $value = null): void
     {
-        $enum->stmts[] = new EnumCase(
-            $name,
-            new String_($value)
-        );
+        $isPureEnum = $enum->scalarType === null;
+        
+        // Initialize stmts array if it doesn't exist
+        if (!isset($enum->stmts)) {
+            $enum->stmts = [];
+        }
+        
+        if ($isPureEnum) {
+            $enum->stmts[] = new EnumCase($name);
+        } else {
+            $enum->stmts[] = new EnumCase(
+                $name,
+                new String_($value)
+            );
+        }
     }
     
     /**
@@ -32,31 +43,39 @@ class EnumModifier
     public function addMethod(Enum_ $enum, string $methodStub): bool
     {
         try {
-            // Check if the stub starts with <?php and add it if not present
-            if (!str_starts_with(trim($methodStub), '<?php')) {
-                // Create a temporary enum with the method
-                $tempCode = "<?php\nenum TempEnum {\ncase TEST = 'test';\n    $methodStub\n}";
+            // Initialize stmts array if it doesn't exist
+            if (!isset($enum->stmts)) {
+                $enum->stmts = [];
+            }
+            
+            // Check if the enum is pure or backed
+            $isPureEnum = $enum->scalarType === null;
+            
+            // Remove PHP tags and any namespace declarations
+            $methodStub = preg_replace('/^\s*<\?php\s*/i', '', $methodStub);
+            $methodStub = preg_replace('/^\s*namespace\s+[^;]+;\s*/m', '', $methodStub);
+            
+            // Create a temporary enum with the method
+            $tempCode = "<?php\n";
+            if ($isPureEnum) {
+                $tempCode .= "enum TempEnum {\n    case TEST;\n    " . trim($methodStub) . "\n}";
             } else {
-                // If it already has the PHP tag, remove it and create the temporary enum
-                $methodStub = preg_replace('/^\s*<\?php\s*/i', '', $methodStub);
-                $tempCode = "<?php\nenum TempEnum {\ncase TEST = 'test';\n    $methodStub\n}";
+                $tempCode .= "enum TempEnum: string {\n    case TEST = 'test';\n    " . trim($methodStub) . "\n}";
             }
             
+            // Parse the temporary code
             $ast = $this->parser->parse($tempCode);
-            
             if (!$ast) {
-                return false;
+                throw new \RuntimeException('Failed to parse method code');
             }
             
-            // Search for the method in the temporary enum
+            // Find the method node
             $methodNode = null;
-            
-            // Traverse the AST to find the enum and the method
             foreach ($ast as $node) {
                 if ($node instanceof Enum_) {
                     foreach ($node->stmts as $stmt) {
                         if ($stmt instanceof ClassMethod) {
-                            $methodNode = $stmt;
+                            $methodNode = clone $stmt;
                             break 2;
                         }
                     }
@@ -64,21 +83,21 @@ class EnumModifier
             }
             
             if (!$methodNode) {
-                return false;
+                throw new \RuntimeException('No method found in the provided code');
             }
             
-            // Check if the method already exists in the target enum
+            // Check if the method already exists
             $methodName = $methodNode->name->toString();
             foreach ($enum->stmts as $stmt) {
                 if ($stmt instanceof ClassMethod && $stmt->name->toString() === $methodName) {
-                    return false; // The method already exists
+                    return false;
                 }
             }
             
             // Add the method to the enum
             $enum->stmts[] = $methodNode;
-            return true;
             
+            return true;
         } catch (\Exception $e) {
             return false;
         }

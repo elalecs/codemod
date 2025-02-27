@@ -10,6 +10,8 @@ use Symfony\Component\Console\Tester\CommandTester;
 beforeEach(function() {
     // Create a working copy of the test enum in a temporary directory
     $fixturesDir = __DIR__ . '/../Fixtures/';
+    
+    // Create a backed enum for testing
     $this->testEnumPath = tempnam(sys_get_temp_dir(), 'test_enum_') . '.php';
     file_put_contents($this->testEnumPath, file_exists($fixturesDir . 'TestEnum.php')
         ? file_get_contents($fixturesDir . 'TestEnum.php')
@@ -18,6 +20,26 @@ enum TestEnum: string
 {
     case CASE_ONE = "one";
     case CASE_TWO = "two";
+}');
+
+    // Create a pure enum for testing
+    $this->testPureEnumPath = tempnam(sys_get_temp_dir(), 'test_pure_enum_') . '.php';
+    file_put_contents($this->testPureEnumPath, '<?php
+enum TestPureEnum
+{
+    case CASE_ONE;
+    case CASE_TWO;
+}');
+
+    // Create an empty pure enum for testing
+    $this->testEmptyPureEnumPath = tempnam(sys_get_temp_dir(), 'test_empty_pure_enum_') . '.php';
+    file_put_contents($this->testEmptyPureEnumPath, '<?php
+
+namespace App\Enums;
+
+enum PropertyType
+{
+    //
 }');
     
     // Create a file to test the cases from file option
@@ -55,6 +77,8 @@ afterEach(function() {
     // Clean up after the test
     cleanupTestFiles([
         $this->testEnumPath,
+        $this->testPureEnumPath,
+        $this->testEmptyPureEnumPath,
         $this->casesFilePath,
         $this->methodStub1Path,
         $this->methodStub2Path,
@@ -93,35 +117,46 @@ function classHasMethod(string $className, string $methodName): bool {
  * Loads the enum from a temporary file
  */
 function loadTestEnum(string $filePath): string {
-    // Include the generated file so PHP can find the class
-    // We use a unique name to avoid collisions with other already loaded classes
-    $tempClassName = 'TestEnum_' . uniqid();
-    
+    if (!file_exists($filePath)) {
+        throw new \RuntimeException("Test enum file does not exist: $filePath");
+    }
+
     // Read the file content
     $code = file_get_contents($filePath);
+    if ($code === false) {
+        throw new \RuntimeException("Could not read test enum file: $filePath");
+    }
+
+    // Generate a unique class name
+    $tempClassName = 'TestEnum_' . uniqid();
     
-    // Verify if the enum has namespace defined
-    $namespacePattern = '/namespace\s+([^;]+);/';
-    preg_match($namespacePattern, $code, $namespaceMatches);
-    $namespace = $namespaceMatches[1] ?? null;
-    
-    // Modify the code to use the temporary class name
-    $code = str_replace('TestEnum', $tempClassName, $code);
-    
-    // Ensure the code has the correct namespace
-    if (!$namespace) {
+    // Extract namespace if it exists
+    $namespace = '';
+    if (preg_match('/namespace\s+([^;]+);/', $code, $matches)) {
+        $namespace = $matches[1];
+        // Keep the original namespace declaration
+        $code = preg_replace('/enum\s+([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+)/', "enum $tempClassName", $code);
+    } else {
+        // If no namespace exists, add one
         $code = preg_replace('/(<\?php)/', "$1\n\nnamespace Tests;", $code);
+        $code = preg_replace('/enum\s+([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+)/', "enum $tempClassName", $code);
+        $namespace = 'Tests';
     }
     
-    // Create a temporary file with the new class name
+    // Create a temporary file with the modified code
     $tempFile = sys_get_temp_dir() . '/' . $tempClassName . '.php';
-    file_put_contents($tempFile, $code);
+    if (file_put_contents($tempFile, $code) === false) {
+        throw new \RuntimeException("Could not write temporary enum file: $tempFile");
+    }
     
     // Load the file
     require_once $tempFile;
     
+    // Clean up
+    unlink($tempFile);
+    
     // Return the full class name
-    return $namespace ? "$namespace\\$tempClassName" : "Tests\\$tempClassName";
+    return "$namespace\\$tempClassName";
 }
 
 // Tests for individual cases
@@ -453,8 +488,8 @@ test('Fails if no option is provided', function() {
     expect($output)->toContain('You must provide at least one option');
 });
 
-// Validation test: should fail if --case is provided without --value
-test('Fails if --case is provided without --value', function() {
+// Validation test: should fail if --case is provided without --value for backed enums
+test('Fails if --case is provided without --value for backed enums', function() {
     $application = new Application();
     $application->add(new EnumModifyCommand(
         new CodeParser(),
@@ -472,5 +507,138 @@ test('Fails if --case is provided without --value', function() {
     
     expect($commandTester->getStatusCode())->toBe(1); // Should fail (code 1)
     $output = $commandTester->getDisplay();
-    expect($output)->toContain('If --case is provided, --value must also be provided');
+    expect($output)->toContain('Backed enums must have case values');
+});
+
+// Tests for pure enums
+test('Fails when trying to add cases with values to a pure enum', function() {
+    $application = new Application();
+    $application->add(new EnumModifyCommand(
+        new CodeParser(),
+        new FileHandler(),
+        new EnumModifier()
+    ));
+    
+    $command = $application->find('enum:modify');
+    $commandTester = new CommandTester($command);
+    
+    $commandTester->execute([
+        'file' => $this->testPureEnumPath,
+        '--cases' => 'NEW_CASE=value'
+    ]);
+    
+    expect($commandTester->getStatusCode())->toBe(1); // Should fail (code 1)
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('Cannot add cases with values to a pure enum');
+});
+
+test('Successfully adds a method to a pure enum', function() {
+    $application = new Application();
+    $application->add(new EnumModifyCommand(
+        new CodeParser(),
+        new FileHandler(),
+        new EnumModifier()
+    ));
+    
+    $command = $application->find('enum:modify');
+    $commandTester = new CommandTester($command);
+    
+    $methodCode = 'public function getDescription(): string { return "Description for " . $this->name; }';
+    
+    $commandTester->execute([
+        'file' => $this->testPureEnumPath,
+        '--method' => $methodCode
+    ]);
+    
+    $commandTester->assertCommandIsSuccessful();
+    $output = $commandTester->getDisplay();
+    
+    // Verify success message
+    expect($output)->toContain('Method getDescription added');
+    expect($output)->toContain('Total of methods added: 1');
+    
+    // Load the modified enum and verify that the method exists
+    $enumClassName = loadTestEnum($this->testPureEnumPath);
+    expect(classHasMethod($enumClassName, 'getDescription'))->toBeTrue();
+    
+    // Verify that the method works correctly
+    $instance = constant("$enumClassName::CASE_ONE");
+    expect($instance->getDescription())->toBe('Description for CASE_ONE');
+});
+
+test('Successfully adds a case without value to a pure enum', function() {
+    $application = new Application();
+    $application->add(new EnumModifyCommand(
+        new CodeParser(),
+        new FileHandler(),
+        new EnumModifier()
+    ));
+    
+    $command = $application->find('enum:modify');
+    $commandTester = new CommandTester($command);
+    
+    $commandTester->execute([
+        'file' => $this->testPureEnumPath,
+        '--case' => 'NEW_CASE'
+    ]);
+    
+    $commandTester->assertCommandIsSuccessful();
+    $output = $commandTester->getDisplay();
+    
+    // Verify success message
+    expect($output)->toContain('Case NEW_CASE added');
+    expect($output)->toContain('Total of cases added: 1');
+    
+    // Load the modified enum and verify that the case exists
+    $enumClassName = loadTestEnum($this->testPureEnumPath);
+    expect(enumHasCase($enumClassName, 'NEW_CASE'))->toBeTrue();
+});
+
+test('Successfully modifies an empty pure enum', function() {
+    $application = new Application();
+    $application->add(new EnumModifyCommand(
+        new CodeParser(),
+        new FileHandler(),
+        new EnumModifier()
+    ));
+    
+    $command = $application->find('enum:modify');
+    $commandTester = new CommandTester($command);
+    
+    // Add a case without value
+    $commandTester->execute([
+        'file' => $this->testEmptyPureEnumPath,
+        '--case' => 'APARTMENT'
+    ]);
+    
+    $commandTester->assertCommandIsSuccessful();
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('Case APARTMENT added');
+    
+    // Add a method
+    $methodCode = 'public function getLabel(): string { return strtolower($this->name); }';
+    $commandTester->execute([
+        'file' => $this->testEmptyPureEnumPath,
+        '--method' => $methodCode
+    ]);
+    
+    $commandTester->assertCommandIsSuccessful();
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('Method getLabel added');
+    
+    // Verify the final state
+    $enumClassName = loadTestEnum($this->testEmptyPureEnumPath);
+    expect(enumHasCase($enumClassName, 'APARTMENT'))->toBeTrue();
+    expect(classHasMethod($enumClassName, 'getLabel'))->toBeTrue();
+    
+    // Verify that adding a case with value fails
+    $commandTester->execute([
+        'file' => $this->testEmptyPureEnumPath,
+        '--case' => 'HOUSE',
+        '--value' => 'house'
+    ]);
+    
+    expect($commandTester->getStatusCode())->toBe(1);
+    $output = $commandTester->getDisplay();
+    expect($output)->toContain('Pure enums cannot have case values');
 }); 

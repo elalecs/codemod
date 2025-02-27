@@ -6,6 +6,8 @@ use CodeModTool\FileHandler;
 use CodeModTool\Modifiers\EnumModifier;
 use CodeModTool\Parser\CodeParser;
 use PhpParser\Node\Stmt\Enum_;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Scalar\LNumber;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -44,6 +46,9 @@ class EnumModifyCommand extends Command
             ->addOption('methods', null, InputOption::VALUE_REQUIRED, 'Multiple methods in pure PHP format')
             ->addOption('methods-file', null, InputOption::VALUE_REQUIRED, 'File with methods to add')
             
+            // Enum type option
+            ->addOption('type', null, InputOption::VALUE_REQUIRED, 'Convert to backed enum with specified type (string, int)')
+            
             // Simulation mode
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show changes without applying them');
     }
@@ -64,15 +69,12 @@ class EnumModifyCommand extends Command
         $methodsContent = $input->getOption('methods');
         $methodsFile = $input->getOption('methods-file');
         
-        // Verify that at least one option is provided
-        if (!$caseName && !$casesString && !$casesFile && !$methodCode && !$methodsContent && !$methodsFile) {
-            $output->writeln("<error>You must provide at least one option: --case, --cases, --cases-file, --method, --methods or --methods-file</error>");
-            return Command::FAILURE;
-        }
+        // Enum type option
+        $enumType = $input->getOption('type');
         
-        // Validate that if --case is provided, --value is also provided
-        if ($caseName && !$caseValue) {
-            $output->writeln("<error>If --case is provided, --value must also be provided</error>");
+        // Verify that at least one option is provided
+        if (!$caseName && !$casesString && !$casesFile && !$methodCode && !$methodsContent && !$methodsFile && !$enumType) {
+            $output->writeln("<error>You must provide at least one option: --case, --cases, --cases-file, --method, --methods, --methods-file or --type</error>");
             return Command::FAILURE;
         }
         
@@ -92,6 +94,14 @@ class EnumModifyCommand extends Command
                 if ($node instanceof Enum_) {
                     $enumNode = $node;
                     break;
+                } elseif ($node instanceof \PhpParser\Node\Stmt\Namespace_) {
+                    // Si es un nodo de namespace, buscar enums dentro de él
+                    foreach ($node->stmts as $stmt) {
+                        if ($stmt instanceof Enum_) {
+                            $enumNode = $stmt;
+                            break 2;
+                        }
+                    }
                 }
             }
             
@@ -100,23 +110,112 @@ class EnumModifyCommand extends Command
                 return Command::FAILURE;
             }
             
+            // Initialize stmts array if it doesn't exist (for empty enums)
+            if (!isset($enumNode->stmts)) {
+                $enumNode->stmts = [];
+            }
+            
+            // Apply type change if requested
+            $typeChanged = false;
+            if ($enumType) {
+                // Validate the enum type
+                if (!in_array(strtolower($enumType), ['string', 'int'])) {
+                    $output->writeln("<error>Invalid enum type. Valid types are: string, int</error>");
+                    return Command::FAILURE;
+                }
+                
+                // Change the enum type
+                $isPureEnum = $enumNode->scalarType === null;
+                if ($isPureEnum) {
+                    $enumNode->scalarType = new \PhpParser\Node\Identifier(strtolower($enumType));
+                    $typeChanged = true;
+                    $output->writeln("<info>Enum converted to backed enum with type: {$enumType}</info>");
+                } else {
+                    $originalType = $enumNode->scalarType->toString();
+                    if ($originalType !== strtolower($enumType)) {
+                        $enumNode->scalarType = new \PhpParser\Node\Identifier(strtolower($enumType));
+                        $typeChanged = true;
+                        $output->writeln("<info>Enum type changed from {$originalType} to {$enumType}</info>");
+                    } else {
+                        $output->writeln("<comment>Enum already has type: {$enumType}</comment>");
+                    }
+                }
+                
+                // If the enum is converted to backed, we need to ensure all cases have values
+                if ($typeChanged && $isPureEnum) {
+                    // If there are existing cases without values, we need to add default values
+                    $caseCount = 0;
+                    foreach ($enumNode->stmts as $index => $stmt) {
+                        if ($stmt instanceof \PhpParser\Node\Stmt\EnumCase) {
+                            $caseCount++;
+                            // Add default value based on the type
+                            if ($stmt->expr === null) {
+                                if (strtolower($enumType) === 'string') {
+                                    $value = strtolower($stmt->name->toString());
+                                    $stmt->expr = new \PhpParser\Node\Scalar\String_($value);
+                                } else { // int
+                                    $value = $caseCount; // Use sequential numbers starting from 1
+                                    $stmt->expr = new \PhpParser\Node\Scalar\LNumber($value);
+                                }
+                                $output->writeln("<info>Added default value '{$value}' to case {$stmt->name}</info>");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check if we're trying to add cases with values to a pure enum
+            $isPureEnum = $enumNode->scalarType === null;
+            
+            // Validate case values based on enum type
+            if ($isPureEnum) {
+                if (($casesString && $this->containsCaseValues($casesString)) || 
+                    ($casesFile && $this->containsCaseValuesInFile($casesFile))) {
+                    $output->writeln("<error>Cannot add cases with values to a pure enum. The enum must be backed (e.g., enum Name: string)</error>");
+                    return Command::FAILURE;
+                }
+                // For pure enums, we don't require a value
+                if ($caseName && $caseValue) {
+                    $output->writeln("<error>Pure enums cannot have case values</error>");
+                    return Command::FAILURE;
+                }
+            } else {
+                // For backed enums, we require a value
+                if ($caseName && !$caseValue) {
+                    $output->writeln("<error>Backed enums must have case values</error>");
+                    return Command::FAILURE;
+                }
+            }
+            
             // Counters to track changes
             $casesAdded = 0;
             $methodsAdded = 0;
             
             // Process cases
-            if ($caseName && $caseValue) {
-                $this->modifier->addCase($enumNode, $caseName, $caseValue);
+            if ($caseName) {
+                $this->modifier->addCase($enumNode, $caseName, $isPureEnum ? null : $caseValue);
                 $casesAdded++;
                 $output->writeln("<info>Case $caseName added</info>");
             }
             
             if ($casesString) {
-                $casesArray = $this->parseCasesString($casesString);
-                foreach ($casesArray as $name => $value) {
-                    $this->modifier->addCase($enumNode, $name, $value);
-                    $casesAdded++;
-                    $output->writeln("<info>Case $name added</info>");
+                if ($isPureEnum) {
+                    // For pure enums, just use the case names
+                    $cases = array_filter(array_map('trim', explode(',', $casesString)));
+                    foreach ($cases as $case) {
+                        if (preg_match('/^[A-Z0-9_]+$/', $case)) {
+                            $this->modifier->addCase($enumNode, $case);
+                            $casesAdded++;
+                            $output->writeln("<info>Case $case added</info>");
+                        }
+                    }
+                } else {
+                    $casesArray = $this->parseCasesString($casesString);
+                    foreach ($casesArray as $name => $value) {
+                        $this->modifier->addCase($enumNode, $name, $value);
+                        $casesAdded++;
+                        $output->writeln("<info>Case $name added</info>");
+                    }
                 }
             }
             
@@ -127,12 +226,26 @@ class EnumModifyCommand extends Command
                 }
                 
                 $casesContent = file_get_contents($casesFile);
-                $casesArray = $this->parseCasesFromFileContent($casesContent);
                 
-                foreach ($casesArray as $name => $value) {
-                    $this->modifier->addCase($enumNode, $name, $value);
-                    $casesAdded++;
-                    $output->writeln("<info>Case $name added</info>");
+                if ($isPureEnum) {
+                    // For pure enums, process each line as a case name
+                    $lines = array_filter(array_map('trim', explode("\n", $casesContent)));
+                    foreach ($lines as $line) {
+                        if (empty($line) || $line[0] === '#' || $line[0] === '/') continue;
+                        
+                        if (preg_match('/^[A-Z0-9_]+$/', $line)) {
+                            $this->modifier->addCase($enumNode, $line);
+                            $casesAdded++;
+                            $output->writeln("<info>Case $line added</info>");
+                        }
+                    }
+                } else {
+                    $casesArray = $this->parseCasesFromFileContent($casesContent);
+                    foreach ($casesArray as $name => $value) {
+                        $this->modifier->addCase($enumNode, $name, $value);
+                        $casesAdded++;
+                        $output->writeln("<info>Case $name added</info>");
+                    }
                 }
             }
             
@@ -177,7 +290,7 @@ class EnumModifyCommand extends Command
             }
             
             // Check if any changes were made
-            if ($casesAdded === 0 && $methodsAdded === 0) {
+            if ($casesAdded === 0 && $methodsAdded === 0 && !$typeChanged) {
                 $output->writeln("<error>No changes were made</error>");
                 return Command::FAILURE;
             }
@@ -301,5 +414,42 @@ class EnumModifyCommand extends Command
 
         $output->writeln($differ->diff($original, $modified));
         $output->writeln('<info>[DRY-RUN MODE] Finished. No changes have been applied.</info>');
+    }
+
+    /**
+     * Check if the cases string contains any values
+     */
+    private function containsCaseValues(string $casesString): bool
+    {
+        $pairs = explode(',', $casesString);
+        foreach ($pairs as $pair) {
+            if (strpos(trim($pair), '=') !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if the cases file contains any values
+     */
+    private function containsCaseValuesInFile(string $filePath): bool
+    {
+        if (!file_exists($filePath)) {
+            return false;
+        }
+        
+        $content = file_get_contents($filePath);
+        $lines = explode("\n", $content);
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line) || $line[0] === '#' || $line[0] === '/') continue;
+            
+            if (strpos($line, '=') !== false) {
+                return true;
+            }
+        }
+        return false;
     }
 } 

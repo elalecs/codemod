@@ -93,6 +93,15 @@ METHODS
 
 # Combine operations: add cases and methods in a single execution
 ./codemod.phar enum:modify path/to/Enum.php --cases="CASE1=value1,CASE2=value2" --method="public function getLabel(): string { return strtolower(\$this->name); }"
+
+# Convert a pure enum to a backed enum with string type
+./codemod.phar enum:modify path/to/Enum.php --type=string
+
+# Convert a pure enum to a backed enum with int type
+./codemod.phar enum:modify path/to/Enum.php --type=int
+
+# Convert a pure enum to a backed enum and add cases in one operation
+./codemod.phar enum:modify path/to/Enum.php --type=string --cases="CASE1=value1,CASE2=value2"
 ```
 
 #### Input Formats
@@ -106,6 +115,10 @@ METHODS
 - Individual method: `--method="public function name() { ... }"`
 - Multiple methods: `--methods="public function name1() { ... } public function name2() { ... }"`
 - From file: `--methods-file=path/to/methods.php` (contains method definitions)
+
+**Enum Type:**
+- Convert to backed enum: `--type=string` or `--type=int`
+- When converting from pure enum to backed enum, existing cases without values will get default values based on the type
 
 ### Class Commands
 
@@ -146,6 +159,30 @@ TRAITS
 ]
 PROPERTIES
 )
+
+# Add array property with complex content
+./codemod.phar class:modify path/to/Class.php --property="casts:array" --array-value="[
+    'type' => \App\Enums\PropertyType::class,
+    'status' => \App\Enums\PropertyStatus::class,
+    'amenities' => 'array',
+    'settings' => 'array',
+    'metadata' => 'array',
+]"
+
+# Add multiple array properties (ejecute comandos separados para cada propiedad)
+# Primero añadir propiedad casts
+./codemod.phar class:modify path/to/Class.php --property="casts:array" --array-value="[
+    'type' => \App\Enums\PropertyType::class,
+    'status' => \App\Enums\PropertyStatus::class
+]"
+
+# Luego añadir propiedad translatable
+./codemod.phar class:modify path/to/Class.php --property="translatable:array" --array-value="[
+    'name', 'description', 'policies'
+]"
+
+# Add array property from a file
+./codemod.phar class:modify path/to/Class.php --property="casts:array" --array-value="$(cat path/to/casts.txt)"
 
 # Add properties from a file
 ./codemod.phar class:modify path/to/Class.php --properties-file=path/to/properties.json
@@ -192,6 +229,8 @@ METHODS
 - Individual property: `--property="name:type=value"` or `--property="name=value"` (without type)
 - Multiple properties: `--properties='[{"name":"prop1",...},{"name":"prop2",...}]'` (JSON format)
 - From file: `--properties-file=path/to/properties.json`
+- Array properties: `--property="name:array"` con `--array-value="[value1, value2]"` 
+  > **Nota importante**: Solo puede usarse un `--array-value` por comando. Para múltiples propiedades array, ejecute comandos separados.
 
 **Property Modification:**
 - `--modify-property="propertyName" --new-value="new value" --new-type="string" --new-visibility="protected"`
