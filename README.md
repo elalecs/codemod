@@ -17,6 +17,9 @@ composer run build
 # Basic usage (add a trait to a class)
 ./codemod.phar class:modify path/to/Class.php --trait=TraitName
 
+# Basic usage (add a trait to a class with import)
+./codemod.phar class:modify path/to/Class.php --trait=TraitName --import=Namespace\\TraitName
+
 # View all available commands
 ./codemod.phar list
 ```
@@ -47,6 +50,7 @@ Automate common PHP code modifications during migrations or refactorings:
 - Automatic backup system
 - Support for batch operations
 - Dry-run mode for testing without applying real changes
+- Support for imports when adding traits
 
 ## Command Guide
 
@@ -130,8 +134,14 @@ The `class:modify` command allows multiple operations on a class in a single exe
 # Basic example: add a trait
 ./codemod.phar class:modify path/to/Class.php --trait=TraitName
 
+# Add a trait with import statement
+./codemod.phar class:modify path/to/Class.php --trait=TraitName --import=App\\Traits\\TraitName
+
 # Add multiple traits in a single operation
 ./codemod.phar class:modify path/to/Class.php --traits="Trait1,Trait2,Trait3"
+
+# Add multiple traits with their imports
+./codemod.phar class:modify path/to/Class.php --traits="Trait1,Trait2,Trait3" --imports="App\\Traits\\Trait1,App\\Traits\\Trait2,App\\Traits\\Trait3"
 
 # Add multiple traits with full namespaces using heredoc
 ./codemod.phar class:modify path/to/Class.php --traits=$(cat << 'TRAITS'
@@ -144,6 +154,19 @@ TRAITS
 
 # Add traits from a file
 ./codemod.phar class:modify path/to/Class.php --traits-file=path/to/traits.txt
+
+# Add traits from a file with imports from another file
+./codemod.phar class:modify path/to/Class.php --traits-file=path/to/traits.txt --imports-file=path/to/imports.txt
+
+# Behavior of trait imports
+# By default, each trait is added in a separate 'use' statement within the class:
+# use Trait1;
+# use Trait2;
+# use Trait3;
+
+# When adding specific combinations of traits (like HasTranslations, Auditable, InteractsWithMedia), 
+# the tool will automatically group them in a single 'use' statement:
+# use HasFactory, HasUuids, SoftDeletes, HasTranslations, Auditable, InteractsWithMedia;
 
 # Add a property (format: name:type=value)
 ./codemod.phar class:modify path/to/Class.php --property="property:string=value"

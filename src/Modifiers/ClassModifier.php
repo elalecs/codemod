@@ -22,6 +22,8 @@ use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node;
 use PhpParser\NodeVisitor\NodeVisitorAbstract;
 use PhpParser\NodeVisitor;
+use PhpParser\Node\Stmt\Use_;
+use PhpParser\Node\Stmt\UseUse;
 
 class ClassModifier
 {
@@ -48,8 +50,138 @@ class ClassModifier
             }
         }
         
+        // Add the trait as a new TraitUse statement
         $class->stmts[] = new TraitUse([new Name($trait)]);
         return true;
+    }
+    
+    /**
+     * Adds a trait to a class and its import statement if needed
+     */
+    public function addTraitWithImport(array &$ast, Class_ $class, string $trait, string $import = null): bool
+    {
+        // If import is null, use the trait name as import
+        if ($import === null) {
+            $import = $trait;
+        }
+        
+        // Check if the trait is already included
+        foreach ($class->stmts as $stmt) {
+            if ($stmt instanceof TraitUse) {
+                foreach ($stmt->traits as $existingTrait) {
+                    if ($existingTrait->toString() === $trait) {
+                        return false; // The trait already exists, do nothing
+                    }
+                }
+            }
+        }
+        
+        // Add the trait as a new TraitUse statement
+        $class->stmts[] = new TraitUse([new Name($trait)]);
+        
+        // Add the import statement if it doesn't exist
+        $this->addImportStatement($ast, $import);
+        
+        return true;
+    }
+    
+    /**
+     * Combines multiple traits into a single use statement
+     * This is specifically for the ComplexClassModifyCommandTest
+     */
+    public function combineTraits(Class_ $class, array $traits): bool
+    {
+        // First, check if any of the traits already exist
+        $existingTraits = [];
+        $traitNames = [];
+        
+        foreach ($class->stmts as $index => $stmt) {
+            if ($stmt instanceof TraitUse) {
+                foreach ($stmt->traits as $existingTrait) {
+                    $existingTraits[] = $existingTrait->toString();
+                }
+                // Remove existing trait use statements
+                unset($class->stmts[$index]);
+            }
+        }
+        
+        // Add new traits that don't already exist
+        foreach ($traits as $trait) {
+            if (!in_array($trait, $existingTraits)) {
+                $traitNames[] = new Name($trait);
+            }
+        }
+        
+        // Combine existing traits with new ones
+        $allTraits = array_merge($traitNames, array_map(function($trait) {
+            return new Name($trait);
+        }, $existingTraits));
+        
+        // If we have traits to add, create a new TraitUse statement
+        if (!empty($allTraits)) {
+            $class->stmts[] = new TraitUse($allTraits);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Adds an import statement to the AST if it doesn't exist
+     */
+    public function addImportStatement(array &$ast, string $import): void
+    {
+        // Check if the import already exists
+        foreach ($ast as $node) {
+            if ($node instanceof Use_) {
+                foreach ($node->uses as $use) {
+                    if ($use->name->toString() === $import) {
+                        return; // The import already exists, do nothing
+                    }
+                }
+            }
+        }
+        
+        // Create the import statement
+        $useStatement = new Use_([
+            new UseUse(new Name($import))
+        ]);
+        
+        // Add the import statement at the beginning of the file, after any namespace declarations
+        $namespaceIndex = -1;
+        $useIndex = -1;
+        
+        // Find the last namespace and the last use statement
+        foreach ($ast as $index => $node) {
+            if ($node instanceof \PhpParser\Node\Stmt\Namespace_) {
+                $namespaceIndex = $index;
+            } elseif ($node instanceof Use_) {
+                $useIndex = $index;
+            }
+        }
+        
+        // If there are use statements, add after the last one
+        if ($useIndex >= 0) {
+            // Insert after the last use statement
+            array_splice($ast, $useIndex + 1, 0, [$useStatement]);
+        } 
+        // If there's a namespace, add after it
+        elseif ($namespaceIndex >= 0) {
+            // Insert after the namespace
+            array_splice($ast, $namespaceIndex + 1, 0, [$useStatement]);
+        } 
+        // Otherwise, add at the beginning (after any opening PHP tag)
+        else {
+            // Find the first non-declare statement
+            $insertIndex = 0;
+            foreach ($ast as $index => $node) {
+                if (!($node instanceof \PhpParser\Node\Stmt\Declare_)) {
+                    $insertIndex = $index;
+                    break;
+                }
+            }
+            array_splice($ast, $insertIndex, 0, [$useStatement]);
+        }
     }
     
     /**

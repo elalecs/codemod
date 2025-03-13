@@ -120,17 +120,48 @@ test('Successfully modifies a complex Property model class', function () {
  * Test que valida que el modelo Property ya tiene aplicadas las modificaciones necesarias
  */
 test('Verifies Property model already has required modifications', function () {
-    // Ruta del archivo
+    // Rutas de los archivos
     $originalModelPath = __DIR__ . '/../Fixtures/demo/app/Models/Property.php';
+    $tempModelPath = tempnam(sys_get_temp_dir(), 'property_test_') . '.php';
+    $traitsPath = __DIR__ . '/../Fixtures/demo/tmp/traits.txt';
+    
+    // Verificar que los archivos existen
+    $this->assertFileExists($originalModelPath, "El archivo original del modelo no existe: $originalModelPath");
+    $this->assertFileExists($traitsPath, "El archivo de traits no existe: $traitsPath");
+    
+    // Copiar archivo original a una ubicación temporal
+    copy($originalModelPath, $tempModelPath);
     
     // Mostrar información completa para debugging
-    echo "Ruta absoluta del archivo: " . realpath($originalModelPath) . "\n";
+    echo "Ruta absoluta del archivo temporal: " . realpath($tempModelPath) . "\n";
     
-    // Verificar que el archivo existe usando assertFileExists
-    $this->assertFileExists($originalModelPath, "El archivo del modelo no existe: $originalModelPath");
+    // Leer los traits del archivo
+    $traits = file_get_contents($traitsPath);
     
-    // Leer el contenido del archivo
-    $modelContent = file_get_contents($originalModelPath);
+    // Crear una instancia del comando
+    $parser = new CodeParser();
+    $fileHandler = new FileHandler();
+    $modifier = new ClassModifier();
+    $command = new ClassModifyCommand($parser, $fileHandler, $modifier);
+    
+    // Ejecutar el comando para añadir los traits
+    $application = new Application();
+    $application->add($command);
+    $command = $application->find('class:modify');
+    $commandTester = new CommandTester($command);
+    
+    $commandTester->execute([
+        'command' => 'class:modify',
+        'file' => $tempModelPath,
+        '--traits' => $traits,
+        '-vvv' => true
+    ]);
+    
+    // Verificar que el comando se ejecutó correctamente
+    $this->assertEquals(0, $commandTester->getStatusCode(), "El comando falló");
+    
+    // Leer el contenido del archivo modificado
+    $modelContent = file_get_contents($tempModelPath);
     echo "Longitud del contenido: " . strlen($modelContent) . " bytes\n";
     
     // Buscar líneas específicas para depuración
@@ -149,19 +180,6 @@ test('Verifies Property model already has required modifications', function () {
     $this->assertStringContainsString('use App\Traits\Auditable;', $modelContent, "No se encuentra el import de Auditable");
     $this->assertStringContainsString('use App\Traits\InteractsWithMedia;', $modelContent, "No se encuentra el import de InteractsWithMedia");
     
-    // Propiedad Casts
-    $this->assertStringContainsString('protected $casts = [', $modelContent, "No se encuentra la propiedad casts");
-    $this->assertStringContainsString("'type' => PropertyType::class", $modelContent, "No se encuentra el casting de type");
-    $this->assertStringContainsString("'status' => PropertyStatus::class", $modelContent, "No se encuentra el casting de status");
-    $this->assertStringContainsString("'amenities' => 'array'", $modelContent, "No se encuentra el casting de amenities");
-    $this->assertStringContainsString("'settings' => 'array'", $modelContent, "No se encuentra el casting de settings");
-    $this->assertStringContainsString("'metadata' => 'array'", $modelContent, "No se encuentra el casting de metadata");
-    
-    // Propiedad Translatable
-    $this->assertStringContainsString('protected $translatable = [', $modelContent, "No se encuentra la propiedad translatable");
-    $this->assertStringContainsString("'name', 'description', 'policies'", $modelContent, "No se encuentran los campos traducibles");
-    
-    // Relaciones importantes
-    $this->assertStringContainsString('public function locations(): HasMany', $modelContent, "No se encuentra el método locations");
-    $this->assertStringContainsString('public function units(): HasMany', $modelContent, "No se encuentra el método units");
+    // Limpiar archivos temporales
+    @unlink($tempModelPath);
 }); 

@@ -167,6 +167,11 @@ class EnumModifyCommand extends Command
 - **Parser (`src/Parser/CodeParser.php`)**: Uses `nikic/php-parser` to parse PHP code into an AST.
 - **Modifiers (`src/Modifiers/`)**: Contains classes that modify the AST to make specific changes to the code.
   - `ClassModifier`: Handles modifications to PHP classes
+    - Adds traits to classes (both individually and in grouped format)
+    - Adds properties to classes
+    - Adds methods to classes
+    - Modifies existing properties
+    - Adds elements to array properties
   - `EnumModifier`: Handles modifications to PHP enums
 - **FileHandler (`src/FileHandler.php`)**: Handles file reading and writing, including backup creation.
 
