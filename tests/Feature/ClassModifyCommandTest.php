@@ -565,4 +565,88 @@ test('Case 14: class:modify in dry-run mode does not modify the file', function 
     // Verify that the code was not modified
     $codeAfter = file_get_contents($this->testClassPath);
     expect($codeAfter)->toBe($originalCode);
-}); 
+});
+
+// Test for adding multiple traits with imports
+test('Case 15: class:modify adds multiple traits with their imports', function () {
+    $application = new Application();
+    $application->add(new ClassModifyCommand(
+        new CodeParser(),
+        new FileHandler(),
+        new ClassModifier()
+    ));
+    
+    $command = $application->find('class:modify');
+    $commandTester = new CommandTester($command);
+    
+    $commandTester->execute([
+        'file' => $this->testClassPath,
+        '--traits' => 'Trait1,Trait2,Trait3',
+        '--imports' => 'App\\Traits\\Trait1,App\\Traits\\Trait2,App\\Traits\\Trait3'
+    ]);
+    
+    $commandTester->assertCommandIsSuccessful();
+    $output = $commandTester->getDisplay();
+    
+    // Verify success messages
+    expect($output)->toContain('Trait Trait1 added with import App\\Traits\\Trait1');
+    expect($output)->toContain('Trait Trait2 added with import App\\Traits\\Trait2');
+    expect($output)->toContain('Trait Trait3 added with import App\\Traits\\Trait3');
+    expect($output)->toContain('Total of traits added: 3');
+    
+    // Verify that the traits were added to the file
+    $classContent = file_get_contents($this->testClassPath);
+    expect($classContent)->toContain('use Trait1;');
+    expect($classContent)->toContain('use Trait2;');
+    expect($classContent)->toContain('use Trait3;');
+    
+    // Verify that the imports were added to the file
+    expect($classContent)->toContain('use App\\Traits\\Trait1;');
+    expect($classContent)->toContain('use App\\Traits\\Trait2;');
+    expect($classContent)->toContain('use App\\Traits\\Trait3;');
+});
+
+// Test for adding traits from a file with imports from another file
+test('Case 16: class:modify adds traits from a file with imports from another file', function () {
+    // Create a file for imports
+    $importsFilePath = tempnam(sys_get_temp_dir(), 'imports_file_') . '.txt';
+    file_put_contents($importsFilePath, "App\\Traits\\TestTrait1\nApp\\Traits\\TestTrait2\nApp\\Traits\\TestTrait3");
+    
+    $application = new Application();
+    $application->add(new ClassModifyCommand(
+        new CodeParser(),
+        new FileHandler(),
+        new ClassModifier()
+    ));
+    
+    $command = $application->find('class:modify');
+    $commandTester = new CommandTester($command);
+    
+    $commandTester->execute([
+        'file' => $this->testClassPath,
+        '--traits-file' => $this->traitsFilePath,
+        '--imports-file' => $importsFilePath
+    ]);
+    
+    $commandTester->assertCommandIsSuccessful();
+    $output = $commandTester->getDisplay();
+    
+    // Verify success messages
+    expect($output)->toContain('Trait TestTrait1 added with import App\\Traits\\TestTrait1');
+    expect($output)->toContain('Trait TestTrait2 added with import App\\Traits\\TestTrait2');
+    expect($output)->toContain('Trait App\\Traits\\TestTrait3 added with import App\\Traits\\TestTrait3');
+    
+    // Verify that the traits were added to the file
+    $classContent = file_get_contents($this->testClassPath);
+    expect($classContent)->toContain('use TestTrait1;');
+    expect($classContent)->toContain('use TestTrait2;');
+    expect($classContent)->toContain('use App\\Traits\\TestTrait3;');
+    
+    // Verify that the imports were added to the file
+    expect($classContent)->toContain('use App\\Traits\\TestTrait1;');
+    expect($classContent)->toContain('use App\\Traits\\TestTrait2;');
+    expect($classContent)->toContain('use App\\Traits\\TestTrait3;');
+    
+    // Clean up
+    @unlink($importsFilePath);
+});

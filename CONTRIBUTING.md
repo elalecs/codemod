@@ -240,6 +240,35 @@ function class_uses_trait(string $className, string $traitName): bool
     // Check if the trait is used in the class
     // ...
 }
+
+## Estrategia de Testing
+
+1. **Pruebas de Posicionamiento**:
+   - Verificar imports dentro de namespaces
+   - Chequear orden relativo entre imports y clase
+
+2. **Pruebas de Ordenamiento**:
+   - Nuevos imports después de existentes
+   - Mantener orden alfabético entre grupos de imports
+
+3. **Prevención de Duplicados**:
+   - Tests que intentan añadir el mismo trait múltiples veces
+   - Verificar count de imports en código resultante
+
+**Ejemplo Test Traits**:
+```php
+test('adds multiple traits with namespace imports', function () {
+    // Configuración comando
+    $this->commandTester->execute([
+        'file' => $testFile,
+        '--traits' => 'Trait1,Trait2',
+        '--imports' => 'App\Traits\Trait1,App\Traits\Trait2'
+    ]);
+
+    // Verificaciones
+    expect($modifiedContent)->toContain('use Trait1;')
+        ->and($modifiedContent)->toContain('use App\Traits\Trait1;');
+});
 ```
 
 ## Packaging with Box (PHAR)

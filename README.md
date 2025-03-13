@@ -239,6 +239,27 @@ METHODS
 
 # Combine operations: add traits, properties, and methods in a single execution
 ./codemod.phar class:modify path/to/Class.php --traits="HasUuid,SoftDeletes" --property="status:string=active" --method="public function getStatus() { return \$this->status; }"
+
+## Modificar Clases
+
+### Añadir Traits con Imports
+```bash
+php bin/codemod class:modify archivo.php \
+  --traits="Trait1,Trait2" \
+  --imports="App\Traits\Trait1,App\Traits\Trait2"
+```
+
+**Nuevas capacidades**:
+- Los imports se añaden automáticamente dentro del namespace correspondiente
+- Prevención de duplicados en imports
+- Ordenamiento inteligente con imports existentes
+- Soporte para múltiples traits en un solo comando
+
+Ejemplo multi-traits:
+```bash
+php bin/codemod class:modify User.php \
+  --traits="HasRoles,LogsActivity" \
+  --imports="Spatie\Permission\Traits\HasRoles,Spatie\Activitylog\Traits\LogsActivity"
 ```
 
 #### Input Formats

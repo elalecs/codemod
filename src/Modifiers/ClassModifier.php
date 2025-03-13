@@ -40,8 +40,16 @@ class ClassModifier
     public function addTrait(Class_ $class, string $trait): bool
     {
         // Check if the trait is already included
-        foreach ($class->stmts as $stmt) {
+        $existingTraitUse = null;
+        $firstTraitUseIndex = null;
+        
+        foreach ($class->stmts as $index => $stmt) {
             if ($stmt instanceof TraitUse) {
+                // Guardar referencia al primer TraitUse que encontremos
+                if ($firstTraitUseIndex === null) {
+                    $firstTraitUseIndex = $index;
+                }
+                
                 foreach ($stmt->traits as $existingTrait) {
                     if ($existingTrait->toString() === $trait) {
                         return false; // The trait already exists, do nothing
@@ -50,13 +58,23 @@ class ClassModifier
             }
         }
         
-        // Add the trait as a new TraitUse statement
-        $class->stmts[] = new TraitUse([new Name($trait)]);
+        // Crear el nuevo TraitUse statement
+        $newTraitUse = new TraitUse([new Name($trait)]);
+        
+        // Si encontramos un TraitUse existente, insertamos el nuevo justo después
+        if ($firstTraitUseIndex !== null) {
+            // Insertar el nuevo trait después del primer TraitUse
+            array_splice($class->stmts, $firstTraitUseIndex + 1, 0, [$newTraitUse]);
+        } else {
+            // Si no hay un TraitUse existente, añadimos uno al principio de la clase
+            array_unshift($class->stmts, $newTraitUse);
+        }
+        
         return true;
     }
     
     /**
-     * Adds a trait to a class and its import statement if needed
+     * Adds a trait to a class with its corresponding import statement
      */
     public function addTraitWithImport(array &$ast, Class_ $class, string $trait, string $import = null): bool
     {
@@ -65,24 +83,13 @@ class ClassModifier
             $import = $trait;
         }
         
-        // Check if the trait is already included
-        foreach ($class->stmts as $stmt) {
-            if ($stmt instanceof TraitUse) {
-                foreach ($stmt->traits as $existingTrait) {
-                    if ($existingTrait->toString() === $trait) {
-                        return false; // The trait already exists, do nothing
-                    }
-                }
-            }
-        }
-        
-        // Add the trait as a new TraitUse statement
-        $class->stmts[] = new TraitUse([new Name($trait)]);
-        
-        // Add the import statement if it doesn't exist
+        // Primero añadimos el import statement
         $this->addImportStatement($ast, $import);
         
-        return true;
+        // Luego añadimos el trait a la clase
+        $traitAdded = $this->addTrait($class, $trait);
+        
+        return $traitAdded;
     }
     
     /**
@@ -132,55 +139,118 @@ class ClassModifier
     public function addImportStatement(array &$ast, string $import): void
     {
         // Check if the import already exists
+        $importExists = false;
+        $namespaceNode = null;
+        
         foreach ($ast as $node) {
-            if ($node instanceof Use_) {
+            if ($node instanceof \PhpParser\Node\Stmt\Namespace_) {
+                $namespaceNode = $node;
+                // Verificar si el import ya existe dentro del namespace
+                foreach ($node->stmts as $stmt) {
+                    if ($stmt instanceof Use_) {
+                        foreach ($stmt->uses as $use) {
+                            if ($use->name->toString() === $import) {
+                                $importExists = true;
+                                break 3; // Salir de todos los bucles
+                            }
+                        }
+                    }
+                }
+            } elseif ($node instanceof Use_) {
                 foreach ($node->uses as $use) {
                     if ($use->name->toString() === $import) {
-                        return; // The import already exists, do nothing
+                        $importExists = true;
+                        break 2; // Salir de los dos bucles
                     }
                 }
             }
         }
         
-        // Create the import statement
+        // Si el import ya existe, no hacer nada
+        if ($importExists) {
+            return;
+        }
+        
+        // Crear el statement de import
         $useStatement = new Use_([
             new UseUse(new Name($import))
         ]);
         
-        // Add the import statement at the beginning of the file, after any namespace declarations
-        $namespaceIndex = -1;
-        $useIndex = -1;
-        
-        // Find the last namespace and the last use statement
-        foreach ($ast as $index => $node) {
-            if ($node instanceof \PhpParser\Node\Stmt\Namespace_) {
-                $namespaceIndex = $index;
-            } elseif ($node instanceof Use_) {
-                $useIndex = $index;
-            }
-        }
-        
-        // If there are use statements, add after the last one
-        if ($useIndex >= 0) {
-            // Insert after the last use statement
-            array_splice($ast, $useIndex + 1, 0, [$useStatement]);
-        } 
-        // If there's a namespace, add after it
-        elseif ($namespaceIndex >= 0) {
-            // Insert after the namespace
-            array_splice($ast, $namespaceIndex + 1, 0, [$useStatement]);
-        } 
-        // Otherwise, add at the beginning (after any opening PHP tag)
-        else {
-            // Find the first non-declare statement
-            $insertIndex = 0;
-            foreach ($ast as $index => $node) {
-                if (!($node instanceof \PhpParser\Node\Stmt\Declare_)) {
-                    $insertIndex = $index;
-                    break;
+        // Si hay un namespace, añadir el import dentro del namespace
+        if ($namespaceNode !== null) {
+            // Encontrar la posición adecuada dentro del namespace
+            $lastUseIndex = -1;
+            $firstClassIndex = -1;
+            
+            foreach ($namespaceNode->stmts as $index => $stmt) {
+                if ($stmt instanceof Use_) {
+                    $lastUseIndex = $index;
+                } elseif ($stmt instanceof Class_ || $stmt instanceof \PhpParser\Node\Stmt\Interface_ || $stmt instanceof \PhpParser\Node\Stmt\Trait_) {
+                    if ($firstClassIndex === -1) {
+                        $firstClassIndex = $index;
+                    }
                 }
             }
-            array_splice($ast, $insertIndex, 0, [$useStatement]);
+            
+            // Si hay statements de use, añadir después del último
+            if ($lastUseIndex >= 0) {
+                array_splice($namespaceNode->stmts, $lastUseIndex + 1, 0, [$useStatement]);
+            }
+            // Si hay una clase y no hay statements de use, añadir antes de la clase
+            elseif ($firstClassIndex >= 0) {
+                array_splice($namespaceNode->stmts, $firstClassIndex, 0, [$useStatement]);
+            }
+            // Si no hay ni use ni clase, añadir al principio del namespace
+            else {
+                array_unshift($namespaceNode->stmts, $useStatement);
+            }
+        } else {
+            // Si no hay namespace, añadir al nivel raíz
+            // Add the import statement at the beginning of the file, after any namespace declarations
+            $namespaceIndex = -1;
+            $useIndex = -1;
+            $classIndex = -1;
+            
+            // Find the last namespace, the last use statement, and the first class
+            foreach ($ast as $index => $node) {
+                if ($node instanceof \PhpParser\Node\Stmt\Namespace_) {
+                    $namespaceIndex = $index;
+                } elseif ($node instanceof Use_) {
+                    $useIndex = $index;
+                } elseif ($node instanceof Class_ || $node instanceof \PhpParser\Node\Stmt\Interface_ || $node instanceof \PhpParser\Node\Stmt\Trait_) {
+                    if ($classIndex === -1) {
+                        $classIndex = $index;
+                    }
+                }
+            }
+            
+            // If there are use statements, add after the last one
+            if ($useIndex >= 0) {
+                // Insert after the last use statement
+                array_splice($ast, $useIndex + 1, 0, [$useStatement]);
+            } 
+            // If there's a namespace, add after it
+            elseif ($namespaceIndex >= 0) {
+                // Insert after the namespace
+                array_splice($ast, $namespaceIndex + 1, 0, [$useStatement]);
+            } 
+            // If there's a class and no namespace, add before the class
+            elseif ($classIndex >= 0) {
+                // Insert before the class
+                array_splice($ast, $classIndex, 0, [$useStatement]);
+            }
+            // Otherwise, add at the beginning (after any opening PHP tag)
+            else {
+                // Find the first non-declare statement
+                $insertIndex = 0;
+                foreach ($ast as $index => $node) {
+                    if (!($node instanceof \PhpParser\Node\Stmt\Declare_)) {
+                        $insertIndex = $index;
+                        break;
+                    }
+                }
+                array_splice($ast, $insertIndex, 0, [$useStatement]);
+            }
         }
     }
     

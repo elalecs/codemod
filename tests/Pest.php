@@ -153,4 +153,107 @@ function class_uses_trait(string $className, string $traitName): bool
     // Search for the trait usage in the file content
     $pattern = "/use\s+{$traitName};/i";
     return preg_match($pattern, $content) === 1;
-} 
+}
+
+/**
+ * Creates a test class file with namespace and imports
+ */
+function createTestClassWithNamespace(string $path = null): string
+{
+    // Use temporary directory if no specific path is provided
+    if ($path === null) {
+        $path = tempnam(sys_get_temp_dir(), 'test_class_') . '.php';
+    }
+    
+    file_put_contents($path, '<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable;
+    
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [\'name\', \'email\', \'password\'];
+    
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array
+     */
+    protected $hidden = [\'password\', \'remember_token\'];
+    
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array
+     */
+    protected function casts(): array
+    {
+        return [\'email_verified_at\' => \'datetime\', \'password\' => \'hashed\'];
+    }
+}
+');
+    
+    return $path;
+}
+
+/**
+ * Creates a test class file with existing imports
+ */
+function createTestClassWithExistingImports(string $path = null): string
+{
+    // Use temporary directory if no specific path is provided
+    if ($path === null) {
+        $path = tempnam(sys_get_temp_dir(), 'test_class_imports_') . '.php';
+    }
+    
+    file_put_contents($path, '<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Log;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable;
+    
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = [\'name\', \'email\', \'password\'];
+    
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array
+     */
+    protected $hidden = [\'password\', \'remember_token\'];
+    
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array
+     */
+    protected function casts(): array
+    {
+        return [\'email_verified_at\' => \'datetime\', \'password\' => \'hashed\'];
+    }
+}
+');
+    
+    return $path;
+}

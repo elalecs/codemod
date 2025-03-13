@@ -211,6 +211,11 @@ class ClassModifyCommand extends Command
                 // Process imports if provided
                 if ($importsString) {
                     $imports = array_map('trim', explode(',', $importsString));
+                    
+                    // Verificar que tenemos la misma cantidad de traits e imports
+                    if (count($traits) !== count($imports)) {
+                        $output->writeln("<comment>Warning: The number of traits and imports does not match. Some traits may not have the correct import.</comment>");
+                    }
                 }
                 
                 // Detectar si estamos en el test ComplexClassModifyCommandTest
@@ -334,6 +339,11 @@ class ClassModifyCommand extends Command
                 if ($importsFile && file_exists($importsFile)) {
                     $importsContent = file_get_contents($importsFile);
                     $importsFromFile = array_filter(array_map('trim', explode("\n", $importsContent)));
+                    
+                    // Verificar que tenemos la misma cantidad de traits e imports
+                    if (count($traits) !== count($importsFromFile)) {
+                        $output->writeln("<comment>Warning: The number of traits and imports in the files does not match. Some traits may not have the correct import.</comment>");
+                    }
                 }
                 
                 foreach ($traits as $index => $trait) {
@@ -650,7 +660,7 @@ class ClassModifyCommand extends Command
      */
     private function extractMethodName(string $methodCode): string
     {
-        if (preg_match('/function\s+([a-zA-Z0-9_]+)/i', $methodCode, $matches)) {
+        if (preg_match('/function\s+([a-zA-Z0-9_]+)\s*\(/i', $methodCode, $matches)) {
             return $matches[1];
         }
         return 'unknown';
