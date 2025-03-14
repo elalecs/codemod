@@ -19,13 +19,15 @@
         }
     },
     "scripts": {
+        "check-dev-deps": "bash -c \"if [ ! -d vendor/pestphp ] || [ ! -f vendor/autoload.php ]; then composer install; fi\"",
+        "dev": [
+            "@check-dev-deps",
+            "./vendor/bin/pest"
+        ],
         "build": [
+            "@dev",
             "composer install --no-dev",
             "./box.phar compile"
-        ],
-        "dev": [
-            "composer install",
-            "./vendor/bin/pest"
         ],
         "post-install-cmd": "@box-install",
         "post-update-cmd": "@box-install",

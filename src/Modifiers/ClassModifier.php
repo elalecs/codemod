@@ -135,8 +135,10 @@ class ClassModifier
     
     /**
      * Adds an import statement to the AST if it doesn't exist
+     * 
+     * @return bool True if the import was added, false if it already existed or couldn't be added
      */
-    public function addImportStatement(array &$ast, string $import): void
+    public function addImportStatement(array &$ast, string $import): bool
     {
         // Check if the import already exists
         $importExists = false;
@@ -168,7 +170,7 @@ class ClassModifier
         
         // Si el import ya existe, no hacer nada
         if ($importExists) {
-            return;
+            return false;
         }
         
         // Crear el statement de import
@@ -252,6 +254,8 @@ class ClassModifier
                 array_splice($ast, $insertIndex, 0, [$useStatement]);
             }
         }
+        
+        return true;
     }
     
     /**

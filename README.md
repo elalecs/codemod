@@ -67,7 +67,7 @@ composer dev
 
 > **Important rules**:
 > - Each trait MUST have a corresponding import
-> - Imports can be added without associated traits
+> - Both `--import` and `--imports` can be used as standalone options to add imports without associated traits
 > - The command will fail if there are more traits than imports
 
 #### Properties
@@ -135,6 +135,10 @@ composer dev
 ./codemod.phar class:modify path/to/Class.php \
   --imports="Illuminate\\Support\\Facades\\Log,Illuminate\\Support\\Str"
 
+# Add a single import without associated trait
+./codemod.phar class:modify path/to/Class.php \
+  --import="Illuminate\\Support\\Facades\\Auth"
+
 # Add a property
 ./codemod.phar class:modify path/to/Class.php \
   --property="status:string=active"
@@ -183,13 +187,35 @@ composer dev
    - Use single quotes for values with special characters
    - Escape $ characters when using heredoc
 
-## Ejemplos de Archivos de Argumentos 📄
+## Best Practices 🔧
 
-Esta sección muestra ejemplos del contenido esperado para cada tipo de archivo que se utiliza como argumento.
+1. **Avoid multiline arguments**:
+   - Multiline arguments can cause interpretation problems
+   - It's preferable to use the `--*-file` arguments by creating a temporary file first
+   ```bash
+   # Instead of this:
+   ./codemod.phar class:modify path/to/Class.php --method="public function complex() {
+     // complex code with multiple lines
+     return true;
+   }"
+   
+   # Better do this:
+   cat > /tmp/method.php << 'METHOD'
+   public function complex() {
+     // complex code with multiple lines
+     return true;
+   }
+   METHOD
+   ./codemod.phar class:modify path/to/Class.php --methods-file=/tmp/method.php
+   ```
 
-### Archivo para `--cases-file`
+## Argument Files Examples 📄
 
-El archivo debe contener una lista de casos con sus valores, uno por línea, en el formato `CASE=value`:
+This section shows examples of the expected content for each type of file used as an argument.
+
+### File for `--cases-file`
+
+The file must contain a list of cases with their values, one per line, in the format `CASE=value`:
 
 ```
 CASE1=value1
@@ -197,9 +223,9 @@ CASE2=value2
 CASE3=value3
 ```
 
-### Archivo para `--methods-file`
+### File for `--methods-file`
 
-El archivo debe contener código PHP con las definiciones de métodos:
+The file must contain PHP code with method definitions:
 
 ```php
 public function method1(): string 
@@ -218,9 +244,9 @@ private function method3(): void
 }
 ```
 
-### Archivo para `--traits-file`
+### File for `--traits-file`
 
-El archivo debe contener una lista de nombres de traits, uno por línea:
+The file must contain a list of trait names, one per line:
 
 ```
 Trait1
@@ -228,9 +254,9 @@ Trait2
 Trait3
 ```
 
-### Archivo para `--imports-file`
+### File for `--imports-file`
 
-El archivo debe contener una lista de imports completos con namespace, uno por línea:
+The file must contain a list of complete imports with namespace, one per line:
 
 ```
 App\Traits\Trait1
@@ -239,9 +265,9 @@ Illuminate\Support\Facades\Log
 Illuminate\Support\Str
 ```
 
-### Archivo para `--properties-file`
+### File for `--properties-file`
 
-El archivo debe contener un JSON válido con un array de objetos que describen las propiedades:
+The file must contain valid JSON with an array of objects describing the properties:
 
 ```json
 [
