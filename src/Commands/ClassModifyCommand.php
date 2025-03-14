@@ -110,7 +110,7 @@ class ClassModifyCommand extends Command
         $methodsDir = $input->getOption('methods-dir');
         
         // Verify that at least one modification option was provided
-        if (!$traitName && !$traitsString && !$traitsFile &&
+        if (!$traitName && !$traitsString && !$importsString && !$traitsFile && !$importsFile &&
             !$propertyDefinition && !$propertiesContent && !$propertiesFile &&
             !$modifyPropertyName &&
             !$arrayPropertyName &&

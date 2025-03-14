@@ -240,42 +240,37 @@ METHODS
 # Combine operations: add traits, properties, and methods in a single execution
 ./codemod.phar class:modify path/to/Class.php --traits="HasUuid,SoftDeletes" --property="status:string=active" --method="public function getStatus() { return \$this->status; }"
 
-## Modificar Clases
+## Modificar Clases con Traits e Imports
 
-### Añadir Traits con Imports
+### Reglas básicas
+- **Cada trait necesita un import**: Todo trait debe tener su import correspondiente
+- **Los imports pueden existir sin traits**: Puedes añadir imports que no estén asociados a traits
+- **Validación estricta**: El comando fallará si hay más traits que imports
+
+### Ejemplos de uso
+
+**1. Añadir un trait con su import:**
 ```bash
-php bin/codemod class:modify archivo.php \
-  --traits="Trait1,Trait2" \
-  --imports="App\Traits\Trait1,App\Traits\Trait2"
+php bin/codemod class:modify User.php \
+  --trait="HasRoles" \
+  --import="Spatie\Permission\Traits\HasRoles"
 ```
 
-**Nuevas capacidades**:
-- Los imports se añaden automáticamente dentro del namespace correspondiente
-- Prevención de duplicados en imports
-- Ordenamiento inteligente con imports existentes
-- Soporte para múltiples traits en un solo comando
-
-**Reglas de validación**:
-- Cada trait DEBE tener un import correspondiente (el comando fallará si hay más traits que imports)
-- Se pueden añadir imports sin traits asociados (útil para clases de utilidad o facades)
-- Los imports sin traits se añaden al namespace pero no se utilizan en la clase
-- El orden de los imports y traits debe coincidir (el primer trait usa el primer import, etc.)
-
-Ejemplo multi-traits:
+**2. Añadir múltiples traits con sus imports:**
 ```bash
 php bin/codemod class:modify User.php \
   --traits="HasRoles,LogsActivity" \
   --imports="Spatie\Permission\Traits\HasRoles,Spatie\Activitylog\Traits\LogsActivity"
 ```
 
-Ejemplo imports sin traits:
+**3. Añadir imports sin traits asociados:**
 ```bash
 php bin/codemod class:modify User.php \
   --traits="HasRoles" \
   --imports="Spatie\Permission\Traits\HasRoles,Illuminate\Support\Facades\Log,Illuminate\Support\Str"
 ```
 
-Ejemplo con archivo de imports:
+**4. Usar archivos para traits e imports:**
 ```bash
 php bin/codemod class:modify User.php \
   --traits-file="traits.txt" \
