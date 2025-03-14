@@ -183,6 +183,89 @@ composer dev
    - Use single quotes for values with special characters
    - Escape $ characters when using heredoc
 
+## Ejemplos de Archivos de Argumentos 📄
+
+Esta sección muestra ejemplos del contenido esperado para cada tipo de archivo que se utiliza como argumento.
+
+### Archivo para `--cases-file`
+
+El archivo debe contener una lista de casos con sus valores, uno por línea, en el formato `CASE=value`:
+
+```
+CASE1=value1
+CASE2=value2
+CASE3=value3
+```
+
+### Archivo para `--methods-file`
+
+El archivo debe contener código PHP con las definiciones de métodos:
+
+```php
+public function method1(): string 
+{
+    return 'Hello World';
+}
+
+protected function method2(int $param): bool 
+{
+    return $param > 0;
+}
+
+private function method3(): void 
+{
+    // Implementation
+}
+```
+
+### Archivo para `--traits-file`
+
+El archivo debe contener una lista de nombres de traits, uno por línea:
+
+```
+Trait1
+Trait2
+Trait3
+```
+
+### Archivo para `--imports-file`
+
+El archivo debe contener una lista de imports completos con namespace, uno por línea:
+
+```
+App\Traits\Trait1
+App\Traits\Trait2
+Illuminate\Support\Facades\Log
+Illuminate\Support\Str
+```
+
+### Archivo para `--properties-file`
+
+El archivo debe contener un JSON válido con un array de objetos que describen las propiedades:
+
+```json
+[
+  {
+    "name": "status",
+    "type": "string",
+    "value": "active",
+    "visibility": "protected"
+  },
+  {
+    "name": "options",
+    "type": "array",
+    "value": ["option1", "option2"],
+    "visibility": "private"
+  },
+  {
+    "name": "enabled",
+    "type": "bool",
+    "value": true,
+    "visibility": "public"
+  }
+]
+```
+
 ## Requirements 📋
 
 - PHP 8.1+
