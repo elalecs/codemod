@@ -641,9 +641,11 @@ class ClassModifyCommand extends Command
                 $methodCode = file_get_contents($methodsFile);
                 $individualMethods = $this->parseMethods($methodCode);
                 
+                $methodsAddedFromFile = 0;
                 foreach ($individualMethods as $singleMethod) {
                     if ($this->modifier->addMethod($classCopy, $singleMethod)) {
                         $methodsAdded++;
+                        $methodsAddedFromFile++;
                         // Extract the method name to show in the message
                         if (preg_match('/function\s+(\w+)\s*\(/i', $singleMethod, $matches)) {
                             $methodName = $matches[1];
@@ -652,6 +654,10 @@ class ClassModifyCommand extends Command
                             $output->writeln("<info>Method added from file</info>");
                         }
                     }
+                }
+                
+                if ($methodsAddedFromFile === 0) {
+                    $output->writeln("<comment>No methods were added from file. Methods might already exist or have syntax errors.</comment>");
                 }
             }
             

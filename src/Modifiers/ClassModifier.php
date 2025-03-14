@@ -391,10 +391,29 @@ class ClassModifier
             $methodName = $matches[1];
             
             // Check if the method already exists in the class
+            $methodExists = false;
             foreach ($class->stmts as $stmt) {
                 if ($stmt instanceof ClassMethod && $stmt->name->toString() === $methodName) {
-                    return false; // The method already exists
+                    // El método ya existe, pero verificamos si es exactamente el mismo o si debemos reemplazarlo
+                    $methodExists = true;
+                    
+                    // Si el método tiene la misma firma pero diferente implementación, lo reemplazamos
+                    if ($this->shouldReplaceMethod($stmt, $methodStub)) {
+                        // Eliminar el método existente para reemplazarlo
+                        $key = array_search($stmt, $class->stmts);
+                        if ($key !== false) {
+                            unset($class->stmts[$key]);
+                            $class->stmts = array_values($class->stmts); // Reindexar el array
+                            $methodExists = false; // Permitir que se añada el nuevo método
+                        }
+                    }
+                    
+                    break;
                 }
+            }
+            
+            if ($methodExists) {
+                return false; // El método ya existe y no necesita ser reemplazado
             }
             
             // Prepare the code for parsing
@@ -456,6 +475,53 @@ class ClassModifier
         } catch (\Exception $e) {
             return false;
         }
+    }
+    
+    /**
+     * Determina si un método existente debe ser reemplazado por uno nuevo
+     */
+    private function shouldReplaceMethod(ClassMethod $existingMethod, string $newMethodStub): bool
+    {
+        // Extraer la firma del método existente
+        $existingParams = [];
+        foreach ($existingMethod->params as $param) {
+            $existingParams[] = $param->var->name;
+        }
+        
+        // Extraer la firma del nuevo método
+        preg_match('/function\s+[a-zA-Z0-9_]+\s*\(([^)]*)\)/i', $newMethodStub, $matches);
+        $newParamsStr = $matches[1] ?? '';
+        $newParams = [];
+        
+        if (!empty($newParamsStr)) {
+            $paramParts = explode(',', $newParamsStr);
+            foreach ($paramParts as $part) {
+                $part = trim($part);
+                if (preg_match('/\$([a-zA-Z0-9_]+)/', $part, $varMatch)) {
+                    $newParams[] = $varMatch[1];
+                }
+            }
+        }
+        
+        // Si el número de parámetros es diferente, consideramos que es un método diferente
+        if (count($existingParams) !== count($newParams)) {
+            return true;
+        }
+        
+        // Verificar si el cuerpo del método es diferente
+        $prettyPrinter = new \PhpParser\PrettyPrinter\Standard();
+        $existingBody = $prettyPrinter->prettyPrint($existingMethod->stmts);
+        
+        // Extraer el cuerpo del nuevo método
+        preg_match('/\{(.*)\}/s', $newMethodStub, $bodyMatches);
+        $newBody = $bodyMatches[1] ?? '';
+        
+        // Normalizar los cuerpos para comparación
+        $existingBody = preg_replace('/\s+/', ' ', trim($existingBody));
+        $newBody = preg_replace('/\s+/', ' ', trim($newBody));
+        
+        // Si los cuerpos son diferentes, reemplazar el método
+        return $existingBody !== $newBody;
     }
     
     /**
