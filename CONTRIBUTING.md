@@ -255,6 +255,11 @@ function class_uses_trait(string $className, string $traitName): bool
    - Tests que intentan añadir el mismo trait múltiples veces
    - Verificar count de imports en código resultante
 
+4. **Validación de Traits e Imports**:
+   - Verificar que cada trait tenga su import correspondiente
+   - Comprobar que se pueden añadir imports sin traits asociados
+   - Validar que el comando falla si hay más traits que imports
+
 **Ejemplo Test Traits**:
 ```php
 test('adds multiple traits with namespace imports', function () {
@@ -270,6 +275,55 @@ test('adds multiple traits with namespace imports', function () {
         ->and($modifiedContent)->toContain('use App\Traits\Trait1;');
 });
 ```
+
+**Ejemplo Test Imports sin Traits**:
+```php
+test('imports can be added without traits', function () {
+    // Configuración comando con más imports que traits
+    $this->commandTester->execute([
+        'file' => $testFile,
+        '--traits' => 'HasRoles',
+        '--imports' => 'App\Traits\HasRoles,Illuminate\Support\Facades\Log,Illuminate\Support\Str'
+    ]);
+
+    // Verificar que todos los imports se añadieron
+    expect($modifiedContent)->toContain('use App\Traits\HasRoles;')
+        ->and($modifiedContent)->toContain('use Illuminate\Support\Facades\Log;')
+        ->and($modifiedContent)->toContain('use Illuminate\Support\Str;');
+        
+    // Verificar que solo el trait especificado se añadió
+    expect($modifiedContent)->toContain('use HasRoles;')
+        ->and($modifiedContent)->not->toContain('use Log;')
+        ->and($modifiedContent)->not->toContain('use Str;');
+});
+```
+
+### Implementación de la Validación
+
+La validación de traits e imports se implementa en `ClassModifyCommand.php`:
+
+1. **Verificación de Correspondencia**:
+   ```php
+   // Verificar que cada trait tenga su import correspondiente
+   if (count($traits) > count($imports)) {
+       $output->writeln("<error>Error: Each trait must have a corresponding import.</error>");
+       return Command::FAILURE;
+   }
+   ```
+
+2. **Procesamiento de Imports Adicionales**:
+   ```php
+   // Si hay más imports que traits, añadir los imports adicionales
+   if (count($imports) > count($traits)) {
+       // Añadir los imports adicionales (sin traits asociados)
+       for ($i = count($traits); $i < count($imports); $i++) {
+           $import = $imports[$i];
+           if (!empty($import)) {
+               $this->modifier->addImportStatement($astCopy, $import);
+           }
+       }
+   }
+   ```
 
 ## Packaging with Box (PHAR)
 

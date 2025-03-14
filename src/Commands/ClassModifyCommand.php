@@ -212,9 +212,27 @@ class ClassModifyCommand extends Command
                 if ($importsString) {
                     $imports = array_map('trim', explode(',', $importsString));
                     
-                    // Verificar que tenemos la misma cantidad de traits e imports
-                    if (count($traits) !== count($imports)) {
-                        $output->writeln("<comment>Warning: The number of traits and imports does not match. Some traits may not have the correct import.</comment>");
+                    // Verificar que cada trait tenga su import correspondiente
+                    if (count($traits) > count($imports)) {
+                        $output->writeln("<error>Error: Each trait must have a corresponding import. There are more traits than imports.</error>");
+                        return Command::FAILURE;
+                    }
+                    
+                    // Si hay más imports que traits, añadir los imports adicionales
+                    if (count($imports) > count($traits)) {
+                        $output->writeln("<info>Note: There are more imports than traits. The additional imports will be added without associated traits.</info>");
+                        
+                        // Añadir los imports adicionales (sin traits asociados)
+                        for ($i = count($traits); $i < count($imports); $i++) {
+                            $import = $imports[$i];
+                            if (!empty($import)) {
+                                if ($this->modifier->addImportStatement($astCopy, $import)) {
+                                    $output->writeln("<info>Import $import added</info>");
+                                } else {
+                                    $output->writeln("<comment>The import $import already exists or could not be added</comment>");
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -340,9 +358,27 @@ class ClassModifyCommand extends Command
                     $importsContent = file_get_contents($importsFile);
                     $importsFromFile = array_filter(array_map('trim', explode("\n", $importsContent)));
                     
-                    // Verificar que tenemos la misma cantidad de traits e imports
-                    if (count($traits) !== count($importsFromFile)) {
-                        $output->writeln("<comment>Warning: The number of traits and imports in the files does not match. Some traits may not have the correct import.</comment>");
+                    // Verificar que cada trait tenga su import correspondiente
+                    if (count($traits) > count($importsFromFile)) {
+                        $output->writeln("<error>Error: Each trait must have a corresponding import. There are more traits than imports.</error>");
+                        return Command::FAILURE;
+                    }
+                    
+                    // Si hay más imports que traits, añadir los imports adicionales
+                    if (count($importsFromFile) > count($traits)) {
+                        $output->writeln("<info>Note: There are more imports than traits in the files. The additional imports will be added without associated traits.</info>");
+                        
+                        // Añadir los imports adicionales (sin traits asociados)
+                        for ($i = count($traits); $i < count($importsFromFile); $i++) {
+                            $import = $importsFromFile[$i];
+                            if (!empty($import) && $import[0] !== '#' && $import[0] !== '/') {
+                                if ($this->modifier->addImportStatement($astCopy, $import)) {
+                                    $output->writeln("<info>Import $import added</info>");
+                                } else {
+                                    $output->writeln("<comment>The import $import already exists or could not be added</comment>");
+                                }
+                            }
+                        }
                     }
                 }
                 

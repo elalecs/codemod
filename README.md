@@ -255,11 +255,45 @@ php bin/codemod class:modify archivo.php \
 - Ordenamiento inteligente con imports existentes
 - Soporte para múltiples traits en un solo comando
 
+**Reglas de validación**:
+- Cada trait DEBE tener un import correspondiente (el comando fallará si hay más traits que imports)
+- Se pueden añadir imports sin traits asociados (útil para clases de utilidad o facades)
+- Los imports sin traits se añaden al namespace pero no se utilizan en la clase
+- El orden de los imports y traits debe coincidir (el primer trait usa el primer import, etc.)
+
 Ejemplo multi-traits:
 ```bash
 php bin/codemod class:modify User.php \
   --traits="HasRoles,LogsActivity" \
   --imports="Spatie\Permission\Traits\HasRoles,Spatie\Activitylog\Traits\LogsActivity"
+```
+
+Ejemplo imports sin traits:
+```bash
+php bin/codemod class:modify User.php \
+  --traits="HasRoles" \
+  --imports="Spatie\Permission\Traits\HasRoles,Illuminate\Support\Facades\Log,Illuminate\Support\Str"
+```
+
+Ejemplo con archivo de imports:
+```bash
+php bin/codemod class:modify User.php \
+  --traits-file="traits.txt" \
+  --imports-file="imports.txt"
+```
+
+Donde `traits.txt` contiene:
+```
+HasRoles
+LogsActivity
+```
+
+Y `imports.txt` puede contener más imports que traits:
+```
+Spatie\Permission\Traits\HasRoles
+Spatie\Activitylog\Traits\LogsActivity
+Illuminate\Support\Facades\Log
+Illuminate\Support\Str
 ```
 
 #### Input Formats

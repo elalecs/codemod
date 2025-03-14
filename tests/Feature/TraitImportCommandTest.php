@@ -169,3 +169,40 @@ test('imports are added in correct order with existing imports', function () {
     
     expect($newImportPos)->toBeGreaterThan($existingImportPos);
 });
+
+/**
+ * Case 05: Test that imports can be added without traits
+ */
+test('imports can be added without traits', function () {
+    $application = new Application();
+    $application->add(new ClassModifyCommand(
+        new CodeParser(),
+        new FileHandler(),
+        new ClassModifier()
+    ));
+    
+    $command = $application->find('class:modify');
+    $commandTester = new CommandTester($command);
+    
+    // Execute the command with more imports than traits
+    $commandTester->execute([
+        'file' => $this->testClassPath,
+        '--traits' => 'HasRoles',
+        '--imports' => 'Spatie\\Permission\\Traits\\HasRoles,Illuminate\\Support\\Facades\\Log,Illuminate\\Support\\Str'
+    ]);
+    
+    $commandTester->assertCommandIsSuccessful();
+    
+    // Get the modified content
+    $modifiedContent = file_get_contents($this->testClassPath);
+    
+    // Check that all imports were added
+    expect($modifiedContent)->toContain('use Spatie\\Permission\\Traits\\HasRoles;');
+    expect($modifiedContent)->toContain('use Illuminate\\Support\\Facades\\Log;');
+    expect($modifiedContent)->toContain('use Illuminate\\Support\\Str;');
+    
+    // Check that only the specified trait was added
+    expect($modifiedContent)->toContain('use HasRoles;');
+    expect($modifiedContent)->not->toContain('use Log;');
+    expect($modifiedContent)->not->toContain('use Str;');
+});
